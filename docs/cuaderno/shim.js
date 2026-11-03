@@ -37,7 +37,7 @@ function seed(){
   });
 }
 /* ---------- API tipo db ---------- */
-function notify(c){(L[c]||[]).forEach(function(f){try{f()}catch(e){console.error(e)}});badge()}
+function notify(c){(L[c]||[]).forEach(function(f){try{f()}catch(e){console.error(e)}});badge();if(dirtyCount()>0)autoSoon(25000)}
 function snap(c){var docs=[];M.forEach(function(r){if(r.c===c&&!r.del&&r.d)docs.push({id:r.i,data:function(){return r.d}})});return {docs:docs}}
 function writeDoc(c,i,fn){var p=c+'/'+i,ex=M.get(p),cur=ex&&!ex.del?clone(ex.d):null;var nd=fn(cur);var rec={p:p,c:c,i:i,d:nd,u:Math.max(now(),(ex?ex.u:0)+1),del:nd==null,dirty:true};M.set(p,rec);put('docs',rec);notify(c);return Promise.resolve()}
 function mergeInto(o,data){Object.keys(data).forEach(function(k){var v=data[k];
@@ -204,6 +204,20 @@ function settings(){
   $('#cq-imp').onclick=function(){$('#cq-file').click()};
   $('#cq-file').onchange=function(){var f=this.files[0];if(!f)return;f.text().then(function(t){var n=importAll(t);st('Importados '+n+' registros. Pulsa "Guardar y sincronizar" para subirlos.','ok')}).catch(function(){st('Ese archivo no es una copia válida.','bad')})};
 }
+
+/* ---------- sincronización automática ---------- */
+var AT=null,ABACK=0;
+function busyUI(){return !!document.querySelector('#sheet:not([hidden]),#picker:not([hidden]),#pick:not([hidden]),.cqov')}
+function autoSoon(ms){clearTimeout(AT);AT=setTimeout(function(){autoSync()},ms)}
+function autoSync(){
+  var c=cfg();if(!c.repo||!c.token||!navigator.onLine||SYNCING)return;
+  if(now()<ABACK)return autoSoon(ABACK-now()+500);
+  if(busyUI())return autoSoon(8000);
+  sync().then(function(r){if(r.up||r.down)toastMsg('Sincronizado · ↑'+r.up+' ↓'+r.down)},function(e){ABACK=now()+120000;BTN&&BTN.classList.add('err');console.warn('auto-sync',e.message)});
+}
+window.addEventListener('online',function(){autoSoon(1500)});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){if(now()-(meta('last')||0)>120000||dirtyCount())autoSoon(1000)}});
+document.addEventListener('DOMContentLoaded',function(){init().then(function(){autoSoon(2000)})});
 window.__CQ.settings=settings;
 window.addEventListener('online',badge);window.addEventListener('offline',badge);
 document.addEventListener('DOMContentLoaded',function(){badge();fixImgs(document)});
