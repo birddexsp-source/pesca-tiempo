@@ -66,5 +66,11 @@
   "name": "Bermeo · Castillo Roto",
   "lat": 43.4261,
   "lon": -2.7259
+ },
+ {
+  "id": "andino",
+  "name": "Andiño",
+  "lat": 43.4336,
+  "lon": -2.8248
  }
 ]
