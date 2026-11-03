@@ -1,7 +1,7 @@
 // Descarga la previsión de oleaje del modelo Euskalmet WAM Costa Vasca (EuskOOS, 1,6 km)
 // para cada spot de spots.json y la guarda en docs/data/forecast.json.
 // Sin dependencias: Node 18+.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
 const BASE = 'https://www.euskoos.eus/ncWMS/wms';
 const L = 'EuskalmetWAMBasqueCoast/';
@@ -61,5 +61,6 @@ out.times = times;
 let last = times.length; while (last > 0 && Object.values(out.spots).every(s => s.hs[last - 1] == null)) last--;
 out.times = times.slice(0, last);
 for (const s of Object.values(out.spots)) for (const k of Object.keys(VARS)) s[k] = s[k].slice(0, last);
+mkdirSync(new URL('../docs/data/', import.meta.url), { recursive: true });
 writeFileSync(new URL('../docs/data/forecast.json', import.meta.url), JSON.stringify(out));
 console.log('guardado', out.times.length, 'horas');
