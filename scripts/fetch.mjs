@@ -57,6 +57,8 @@ for (const sp of spots) {
   console.log(sp.id, 'ok', p.km + ' km al mar');
 }
 out.times = times;
+const okSpots = Object.values(out.spots).filter(s => s.hs.some(v => v != null)).length;
+if (okSpots < Math.ceil(spots.length / 2)) { console.error('Datos insuficientes (' + okSpots + '/' + spots.length + '), no se guarda'); process.exit(1); }
 // Quita las horas finales sin datos (fuera del horizonte del modelo)
 let last = times.length; while (last > 0 && Object.values(out.spots).every(s => s.hs[last - 1] == null)) last--;
 out.times = times.slice(0, last);
