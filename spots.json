@@ -14,8 +14,8 @@
  {
   "id": "matxitxako",
   "name": "Matxitxako",
-  "lat": 43.4553,
-  "lon": -2.754
+  "lat": 43.4565,
+  "lon": -2.7526
  },
  {
   "id": "lamerapunte",
@@ -54,5 +54,17 @@
   "name": "Ondarroa",
   "lat": 43.325,
   "lon": -2.416
+ },
+ {
+  "id": "san-juan",
+  "name": "San Juan de Gaztelugatxe",
+  "lat": 43.4445,
+  "lon": -2.7844
+ },
+ {
+  "id": "castillo-roto",
+  "name": "Bermeo · Castillo Roto",
+  "lat": 43.4261,
+  "lon": -2.7259
  }
 ]
