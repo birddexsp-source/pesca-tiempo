@@ -1,0 +1,58 @@
+[
+ {
+  "id": "armintza",
+  "name": "Armintza",
+  "lat": 43.4375,
+  "lon": -2.8995
+ },
+ {
+  "id": "bakio",
+  "name": "Bakio",
+  "lat": 43.433,
+  "lon": -2.8115
+ },
+ {
+  "id": "matxitxako",
+  "name": "Matxitxako",
+  "lat": 43.4553,
+  "lon": -2.754
+ },
+ {
+  "id": "lamerapunte",
+  "name": "Bermeo · Lamerapunte",
+  "lat": 43.4182,
+  "lon": -2.7087,
+  "sea": {
+   "lat": 43.431,
+   "lon": -2.7189
+  }
+ },
+ {
+  "id": "portoko-blokiek",
+  "name": "Bermeo · Portoko blokiek",
+  "lat": 43.421,
+  "lon": -2.7189,
+  "sea": {
+   "lat": 43.431,
+   "lon": -2.7189
+  }
+ },
+ {
+  "id": "mundaka",
+  "name": "Mundaka",
+  "lat": 43.408,
+  "lon": -2.696
+ },
+ {
+  "id": "lekeitio",
+  "name": "Lekeitio",
+  "lat": 43.368,
+  "lon": -2.5
+ },
+ {
+  "id": "ondarroa",
+  "name": "Ondarroa",
+  "lat": 43.325,
+  "lon": -2.416
+ }
+]

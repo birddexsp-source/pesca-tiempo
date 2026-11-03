@@ -1,0 +1,34 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mar · Bizkaia</title>
+<style>
+:root{color-scheme:dark light;--bg:#071218;--card:#0e2029;--tx:#eaf4f6;--mu:#8fa8b0;--ac:#3fb8c9}
+@media (prefers-color-scheme:light){:root{--bg:#f3f7f8;--card:#fff;--tx:#10242b;--mu:#5d737b;--ac:#12809a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,sans-serif;padding:16px 16px 40px;max-width:560px;margin:auto}
+h1{font-size:20px;margin:4px 0 2px}small{color:var(--mu)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.chips button{border:1px solid var(--mu);background:none;color:var(--tx);border-radius:999px;padding:6px 12px;font:inherit}
+.chips button.on{background:var(--ac);border-color:var(--ac);color:#04161b}
+.now{background:var(--card);border-radius:14px;padding:14px;margin:8px 0}
+.big{font-size:34px;font-weight:700}
+table{width:100%;border-collapse:collapse;margin-top:6px}th,td{padding:7px 4px;text-align:center;border-bottom:1px solid #8883}
+th{color:var(--mu);font-weight:500;font-size:12px}td:first-child,th:first-child{text-align:left}
+.d td{background:#8882;font-weight:600;text-align:left}
+.h{border-radius:6px;padding:2px 6px;color:#04161b;font-weight:600}
+.arr{display:inline-block}
+</style></head><body>
+<h1>Mar · costa de Bizkaia</h1><small id="up">cargando…</small>
+<div class="chips" id="chips"></div><div id="v"></div>
+<p><small>Modelo Euskalmet WAM Costa Vasca (EuskOOS, 1,6 km). Altura de ola (m), periodo pico (s), dirección de donde viene el oleaje, viento (km/h). Cada spot usa el punto de mar más cercano.</small></p>
+<script>
+const $=s=>document.querySelector(s);let D,cur=localStorage.getItem('spot');
+const col=h=>h==null?'#8884':h<.5?'#7fd6a2':h<1?'#b6e07a':h<1.5?'#f1d86a':h<2?'#f4a65a':h<3?'#ee6f5f':'#b04bd0';
+const dirTxt=a=>a==null?'':['N','NE','E','SE','S','SO','O','NO'][Math.round(a/45)%8];
+function draw(){$('#chips').innerHTML=Object.entries(D.spots).map(([k,s])=>`<button class="${k===cur?'on':''}" onclick="cur='${k}';localStorage.setItem('spot',cur);draw()">${s.name}</button>`).join('');
+const s=D.spots[cur];if(!s){$('#v').innerHTML='';return}
+const now=Date.now();let i=D.times.findIndex(t=>new Date(t).getTime()>=now-1.5*3600e3);if(i<0)i=0;
+$('#v').innerHTML=`<div class="now"><small>Ahora (${new Date(D.times[i]).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})})</small><div class="big">${s.hs[i]??'–'} m <small style="font-size:16px">${s.tp[i]??'–'} s · ${dirTxt(s.dir[i])} ${s.dir[i]!=null?Math.round(s.dir[i])+'°':''}</small></div><small>Punto de mar: ${s.sea.lat}, ${s.sea.lon}${s.sea.manual?'':' ('+s.sea.km+' km del spot)'}</small></div>`+
+'<table><tr><th>Hora</th><th>Ola</th><th>Per.</th><th>Dir.</th><th>Viento</th></tr>'+
+D.times.map((t,k)=>({t,k})).filter(o=>o.k>=i).map(({t,k},j,a)=>{const d=new Date(t);const day=d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'short'});const prev=j>0?new Date(a[j-1].t).toDateString():'';
+return (d.toDateString()!==prev?`<tr class="d"><td colspan="5">${day}</td></tr>`:'')+`<tr><td>${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</td><td><span class="h" style="background:${col(s.hs[k])}">${s.hs[k]??'–'}</span></td><td>${s.tp[k]??'–'}</td><td>${dirTxt(s.dir[k])}</td><td>${s.ws[k]!=null?Math.round(s.ws[k]*3.6):'–'} ${dirTxt(s.wd[k])}</td></tr>`}).join('')+'</table>'}
+fetch('data/forecast.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;if(!D.spots[cur])cur=Object.keys(D.spots)[0];$('#up').textContent='Actualizado '+new Date(D.updated).toLocaleString('es',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});draw()}).catch(()=>$('#up').textContent='Aún sin datos: espera a la primera actualización.');
+</script></body></html>
