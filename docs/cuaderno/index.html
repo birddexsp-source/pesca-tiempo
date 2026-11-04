@@ -6885,8 +6885,8 @@ function lvUpAudio(){
 
 /* ---------- elegir cómo empezar ---------- */
 function lvChooser(){
-  openSheet('Nueva salida','<div class="block"><button type="button" class="qcbig" data-a="lv-live"><span class="qb">'+ICO.plus+'</span><span><b>Estoy pescando ahora</b><small>Lo montas en 20 segundos y vas marcando capturas y cambios sobre la marcha</small></span></button>'+
-    '<button type="button" class="qcbig" data-a="lv-past" style="margin-top:10px"><span class="qb">'+ICO.plus+'</span><span><b>Ya he pescado</b><small>Rellénala con calma: ayer, esta mañana, desde casa…</small></span></button></div>','','');
+  openSheet('Nueva salida','<div class="lvch"><button type="button" class="lvc live" data-a="lv-live"><span class="big">🎣</span><span class="tt"><b>Estoy pescando</b><small>Lo montas en 20 segundos y marcas capturas, cambios y notas de voz sobre la marcha.</small></span><span class="cta">Empezar ahora</span></button>'+
+    '<button type="button" class="lvc past" data-a="lv-past"><span class="big">📝</span><span class="tt"><b>Ya he pescado</b><small>Rellénala con calma: ayer, esta mañana, desde casa…</small></span><span class="cta">Rellenar salida</span></button></div>','','lvchoose');
 }
 window.addEventListener('click',function(ev){
   var b=ev.target.closest?ev.target.closest('[data-a="new-trip"],[data-a="sess-finish"]'):null;if(!b)return;
@@ -6927,7 +6927,7 @@ function lvUseBlock(rig,mode){
     });
     h+='<details class="gdet gsec" data-lk="'+key+'"'+(LVOPEN[key]?' open':'')+'><summary><span>'+k[1]+'</span><small>'+esc(sel.map(function(u){return (u.name||'')+(u.bob?' ('+u.bob+')':'')}).join(', ')||'Toca para elegir')+'</small></summary><div class="gbody">'+bob+'<div class="ugrid">'+lst.map(function(it){
       var on=useList(rig).some(function(u){return u.id===it.id});
-      return '<button type="button" class="utile'+(on?' on':'')+'" data-a="lv-use" data-id="'+esc(it.id)+'" aria-pressed="'+on+'">'+ivThumb(it)+'<span>'+esc(invName(it)||'Sin nombre')+'</span></button>'}).join('')+'</div></div></details>';
+      return '<button type="button" class="utile'+(on?' on':'')+'" data-a="lv-use" data-id="'+esc(it.id)+'" aria-pressed="'+on+'">'+ivThumb(it)+'<span>'+esc(invShort(it)||'Sin nombre')+'</span></button>'}).join('')+'</div></div></details>';
   })}finally{INVMODE=null}
   return h||'<p class="hint">Aún no tienes equipo en la pestaña Equipo.</p>';
 }
@@ -6936,7 +6936,7 @@ function lvUseToggle(rig,a,b){
   var L=useList(rig);
   if(a==='lv-use'){
     var ix=L.findIndex(function(u){return u.id===it.id});
-    if(ix>-1)L.splice(ix,1);else L.push({id:it.id,kind:it.kind,name:invName(it)});
+    if(ix>-1)L.splice(ix,1);else L.push({id:it.id,kind:it.kind,name:invShort(it)});
     if(USELEG[it.kind])useSync(rig,it.kind);LVOPEN['lv'+it.kind]=true;
   }else{
     var u=L.filter(function(x){return x.id===it.id})[0];if(!u)return;
@@ -6944,14 +6944,69 @@ function lvUseToggle(rig,a,b){
     u.bob=u.bob===nom?'':nom;if(!u.bob)delete u.bob;useSync(rig,'carrete');LVOPEN.lvcarrete=true;
   }
 }
+function lvSiteBlock(){
+  var st=LV.siteId?siteOf(LV.siteId):null,rec=lvSites().slice(0,4);
+  return '<div class="block"><h3>¿Dónde estás?</h3><button type="button" class="lvsite" data-a="lv-map"><span class="pin">📍</span><span class="tx"><b>'+(st?esc(st.name):'Elegir en el mapa')+'</b><small>'+(st?'Toca para cambiarlo en el mapa':'Toca el mapa o crea un sitio nuevo con +')+'</small></span><span class="go">🗺</span></button>'+
+    (rec.length?'<div class="chips lvrec">'+rec.map(function(s){return '<button type="button" class="chip'+(LV.siteId===s.id?' on':'')+'" data-a="lv-site" data-id="'+esc(s.id)+'" aria-pressed="'+(LV.siteId===s.id)+'">'+esc(s.name)+'</button>'}).join('')+'</div>':'')+
+    (LV.siteId&&spots.some(function(s){return s.siteId===LV.siteId})?'<span class="invl" style="margin-top:12px;display:block">Spot (opcional)</span><div class="chips">'+lvSpotChips(LV.siteId,LV.spotId,'lv-spot-pick','')+'</div>':'')+'</div>';
+}
 function lvSetupBody(){
   var modes=modeNames();
-  return '<div class="block"><h3>¿Dónde estás?</h3><div class="chips">'+lvSites().map(function(s){return '<button type="button" class="chip'+(LV.siteId===s.id?' on':'')+'" data-a="lv-site" data-id="'+esc(s.id)+'" aria-pressed="'+(LV.siteId===s.id)+'">'+esc(s.name)+'</button>'}).join('')+'<button type="button" class="chip'+(!LV.siteId?' on':'')+'" data-a="lv-site" data-id="" aria-pressed="'+(!LV.siteId)+'">Aún no lo sé</button></div>'+
-    (LV.siteId&&spots.some(function(s){return s.siteId===LV.siteId})?'<span class="invl" style="margin-top:10px;display:block">Spot (opcional)</span><div class="chips">'+lvSpotChips(LV.siteId,LV.spotId,'lv-spot-pick','')+'</div>':'')+'</div>'+
+  return lvSiteBlock()+
     '<div class="block"><h3>Modalidad</h3><div class="chips">'+modes.map(function(m){return '<button type="button" class="chip'+(LV.mode===m?' on':'')+'" data-a="lv-mode" data-v="'+esc(m)+'" aria-pressed="'+(LV.mode===m)+'">'+esc(m)+'</button>'}).join('')+'</div></div>'+
     compBlock()+
     '<div class="block"><h3>Mi equipo</h3>'+(LV.hadPrev?'<p class="hint">Es el de tu última salida. Cámbialo si hoy llevas otro.</p>':'')+lvUseBlock(LV.rig,LV.mode)+'</div>';
 }
+/* mapa para elegir o crear el sitio */
+var LM=null;
+function lvMapOpen(){
+  if(!window.L){toast('El mapa no está disponible ahora');return}
+  var el=$('#pick');el.hidden=false;el.className='sheet picker pk';
+  el.innerHTML='<div class="sh"><h2>¿Dónde pescas?</h2><button class="x" data-a="mp-cancel" aria-label="Cerrar">'+ICO.x+'</button></div>'+
+    '<div id="pkwrap"><div id="pkmap"></div><div class="mlayers"><button data-a="mp-layer" data-l="sat" aria-pressed="true">Satélite</button><button data-a="mp-layer" data-l="base" aria-pressed="false">Mapa</button></div>'+
+    '<div class="mctl"><button data-a="mp-in" aria-label="Acercar">'+ICO.plus+'</button><button data-a="mp-out" aria-label="Alejar"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button></div>'+
+    '<button type="button" class="lmplus" data-a="lm-new"><span>+</span> Sitio nuevo</button></div><div class="pkbar" id="pkbar"></div>';
+  LM={sel:LV&&LV.siteId||'',mode:'pick',mk:{},nm:null};
+  PK=null;
+  PKM=L.map('pkmap',{minZoom:9,maxZoom:20,zoomSnap:0.5,zoomControl:false,attributionControl:false,maxBounds:[[42.6,-4.2],[43.8,-1.8]],maxBoundsViscosity:0.6});
+  PKLAYS={sat:makePack({st:'sat',maxZoom:20}),base:makePack({st:'base',maxZoom:17})};PKLAYS.sat.addTo(PKM);
+  var pts=[];
+  sites.forEach(function(s){var p=sitePos(s);if(!p)return;pts.push([p.la,p.lo]);
+    LM.mk[s.id]=L.marker([p.la,p.lo],{icon:pinIcon(s,'ok',s.id===LM.sel),zIndexOffset:s.id===LM.sel?500:0}).addTo(PKM).on('click',function(){if(LM.mode!=='pick')return;lvMapSel(s.id)});
+  });
+  var cur=LM.sel&&siteOf(LM.sel)?sitePos(siteOf(LM.sel)):null;
+  if(cur)PKM.setView([cur.la,cur.lo],15,{animate:false});else if(pts.length>1)PKM.fitBounds(pts,{padding:[40,40],maxZoom:14,animate:false});else PKM.setView(pts[0]||[43.4219,-2.7225],14,{animate:false});
+  PKM.on('click',function(e){if(LM&&LM.mode==='new'&&LM.nm){LM.nm.setLatLng(e.latlng);lvMapBar()}});
+  lvMapBar();setTimeout(function(){PKM.invalidateSize()},60);
+}
+function lvMapSel(id){
+  var old=LM.sel;LM.sel=id;
+  [old,id].forEach(function(k){var s=k&&siteOf(k),m=k&&LM.mk[k];if(s&&m){m.setIcon(pinIcon(s,'ok',k===id));m.setZIndexOffset(k===id?500:0)}});
+  lvMapBar();
+}
+function lvMapBar(){
+  var el=$('#pkbar');if(!el||!LM)return;
+  if(LM.mode==='new'){
+    var p=LM.nm.getLatLng();
+    el.innerHTML='<div class="hint">Toca el mapa o arrastra el pin hasta el sitio. <span class="mono">'+p.lat.toFixed(5)+', '+p.lng.toFixed(5)+'</span></div><input id="lm-name" maxlength="40" autocomplete="off" placeholder="Nombre del sitio nuevo" aria-label="Nombre del sitio" value="'+esc(LM.name||'')+'"><div class="actions"><button type="button" class="btn" data-a="lm-back">Atrás</button><button type="button" class="btn primary" style="flex:1" data-a="lm-create">Crear y elegir</button></div>';
+    return;
+  }
+  var s=LM.sel?siteOf(LM.sel):null;
+  el.innerHTML=s?'<div class="lmsel"><b>'+esc(s.name)+'</b><small>Sitio elegido</small></div><button type="button" class="btn primary" data-a="lm-ok">Elegir este sitio</button>':'<div class="hint">Toca un sitio del mapa, o crea uno nuevo con «+ Sitio nuevo».</div>';
+}
+function lvMapNew(){
+  LM.mode='new';var c=PKM.getCenter();
+  LM.nm=L.marker(c,{draggable:true,icon:pinIcon({id:'x',name:'Nuevo sitio'},'new',true),zIndexOffset:900}).addTo(PKM).on('dragend',lvMapBar);
+  var b=document.querySelector('.lmplus');if(b)b.hidden=true;lvMapBar();
+}
+function lvMapBack(){if(LM.nm){PKM.removeLayer(LM.nm);LM.nm=null}LM.mode='pick';var b=document.querySelector('.lmplus');if(b)b.hidden=false;lvMapBar()}
+function lvMapCreate(){
+  var n=$('#lm-name'),nm=n&&n.value.trim();if(!nm){toast('Ponle nombre al sitio');return}
+  var p=LM.nm.getLatLng(),ref=db.collection('sites').doc();
+  ref.set({name:nm,lat:p.lat,lon:p.lng,desc:'',createdAt:Date.now(),status:'activo'}).catch(function(){toast('No se pudo crear el sitio')});
+  LV.siteId=ref.id;LV.spotId='';LM=null;closePick();setTimeout(lvPaint,150);toast('Sitio «'+nm+'» creado');
+}
+function lvMapOk(){if(!LM||!LM.sel)return;LV.siteId=LM.sel;LV.spotId='';LM=null;closePick();lvPaint()}
 function lvStart(){
   if(!LV||!db)return;
   if(!LV.mode){toast('Elige la modalidad');return}
@@ -6980,7 +7035,7 @@ function lvEvRow(e){
 function lvConsoleHTML(){
   var s=SESS,L=s.companions||[],pl=(s.where||{})[''],rig=lvCurRig(),now=Date.now(),cs=sessCounts();
   var ri=(s.equipos||[]).indexOf(rig);
-  var head='<div class="block lvhead"><div class="comphead"><h3>'+esc(s.mode||'Salida')+'</h3><small class="hint">desde las '+esc(hhmm(s.startedAt))+' · '+esc(lvDur(s.startedAt,now))+'</small></div>'+
+  var head='<div class="block lvhead"><small class="hint">'+esc(s.mode||'Salida')+' · desde las '+esc(hhmm(s.startedAt))+'</small><div class="tm">'+esc(lvDur(s.startedAt,now))+'</div>'+
     '<p class="hint">📍 '+esc((pl&&pl.name)||s.siteName||'Sin ubicación fija')+'</p>'+(rig?'<p class="hint">🎣 '+((s.equipos||[]).length>1?'Equipo '+esc(eqLetter(ri))+' · ':'')+esc(lvRigTxt(rig)||'equipo sin detallar')+'</p>':'')+
     '<p class="hint">'+cs.m+' tuyas'+(L.length?' · '+cs.o+' de compañeros':'')+'</p></div>';
   var grid='<div class="lvgrid"><button type="button" class="lvb main" data-a="lv-cap"><span class="ic">⚡</span><span><b>Captura</b><br><small>Especie, talla y cebo en 3 toques</small></span></button>'+
@@ -7074,7 +7129,7 @@ function lvPaint(){
 /* ---------- eventos ---------- */
 document.addEventListener('toggle',function(ev){var d=ev.target;if(d&&d.getAttribute&&d.getAttribute('data-lk'))LVOPEN[d.getAttribute('data-lk')]=d.open},true);
 document.addEventListener('click',function(ev){
-  var b=ev.target.closest?ev.target.closest('[data-a^="lv-"]'):null;if(!b)return;
+  var b=ev.target.closest?ev.target.closest('[data-a^="lv-"],[data-a^="lm-"]'):null;if(!b)return;
   var a=b.getAttribute('data-a'),id=b.getAttribute('data-id'),v=b.getAttribute('data-v');
   if(a==='lv-live')lvOpenSetup();
   else if(a==='lv-past'){closeSheet();openTripEditor(null)}
@@ -7083,6 +7138,11 @@ document.addEventListener('click',function(ev){
   else if(a==='lv-mode'){LV.mode=v;LV.companions.forEach(function(c){if(!c.mode)c.mode=v});lvPaint()}
   else if(a==='lv-use'||a==='lv-bob'){var r=LVV==='eq'?LE.rig:LV.rig;lvUseToggle(r,a,b);lvPaint()}
   else if(a==='lv-start')lvStart();
+  else if(a==='lv-map')lvMapOpen();
+  else if(a==='lm-new')lvMapNew();
+  else if(a==='lm-back')lvMapBack();
+  else if(a==='lm-create')lvMapCreate();
+  else if(a==='lm-ok')lvMapOk();
   else if(a==='lv-cap'){LVBACK=true;openQuick();lvQcDefault()}
   else if(a==='lv-spot')lvSpotOpen();
   else if(a==='lv-eq')lvEqOpen();
@@ -7148,6 +7208,21 @@ stepSite=function(){return _stepSite34().replace(/<div class="block startblk">[\
 
 /* ---------- fotos del equipo: reintenta si la red las pierde ---------- */
 window.addEventListener('error',function(ev){var im=ev.target;if(!im||im.tagName!=='IMG'||!/img\/gear\//.test(im.src||'')||im.__rt>=3)return;im.__rt=(im.__rt||0)+1;var s=im.getAttribute('src').split('?')[0];setTimeout(function(){im.src=s+'?r='+im.__rt},2500*im.__rt)},true);
+
+document.addEventListener('input',function(ev){if(ev.target&&ev.target.id==='lm-name'&&LM)LM.name=ev.target.value},true);
+function invShort(it){
+  if(!it)return '';var k=it.kind;
+  if(k==='anzuelo'){var w=String(it.modelo||it.name||'').replace(/\(.*?\)/g,'').trim().split(/\s+/),b=w[0]||'';if(/^[A-Z]{2,}$/.test(b)&&/^[A-Z]{2,}$/.test(w[1]||''))b+=' '+w[1];return (b+(it.num?' nº '+it.num:'')).trim()||invName(it)}
+  if(k==='corcho'){var f=String(it.fab||'').replace(/\(.*?\)/g,'').trim();return ((f||it.forma||'Corcho')+(it.gr?' '+it.gr+' g':'')).trim()}
+  if(k==='cana'||k==='carrete'){var n=String(it.name||'');return n.length>30?n.slice(0,29)+'…':n}
+  return invName(it);
+}
+useTile=function(it,e,i){
+  var on=useList(e).some(function(u){return u.id===it.id});
+  return '<button type="button" class="utile'+(on?' on':'')+'" data-a="use-tog" data-i="'+i+'" data-id="'+esc(it.id)+'" aria-pressed="'+on+'">'+ivThumb(it)+'<span>'+esc(invShort(it)||'Sin nombre')+'</span></button>';
+};
+
+(function(){var s=document.createElement('style');s.textContent=".lvch{display:flex;flex-direction:column;gap:14px;min-height:calc(100dvh - 130px);padding:4px 0 8px}\n.lvc{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:22px;border-radius:24px;border:1.5px solid var(--line);color:inherit;text-align:left;position:relative;overflow:hidden;background:var(--surface)}\n.lvc .big{font-size:54px;line-height:1;position:absolute;top:20px;left:22px}\n.lvc .tt b{display:block;font:700 26px/1.1 var(--display);margin-bottom:6px}.lvc .tt small{display:block;color:var(--muted);font-size:14px;line-height:1.35}\n.lvc .cta{align-self:flex-start;padding:11px 18px;border-radius:999px;font:700 15px var(--display);background:rgba(255,255,255,.08);border:1px solid var(--line2)}\n.lvc.live{background:radial-gradient(120% 90% at 20% 0%,rgba(58,208,200,.35),rgba(58,208,200,.06) 60%),var(--surface);border-color:rgba(58,208,200,.7)}\n.lvc.live .cta{background:var(--accent,#3ad0c8);color:var(--accent-ink,#06201f);border:0}\n.lvc.past{background:radial-gradient(120% 90% at 20% 0%,rgba(255,190,60,.16),transparent 60%),var(--surface)}\n.lvsite{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:16px;border:1.5px solid rgba(58,208,200,.55);background:linear-gradient(135deg,rgba(58,208,200,.16),rgba(58,208,200,.04));color:inherit;text-align:left}\n.lvsite .pin{font-size:26px}.lvsite .tx{flex:1;min-width:0}.lvsite b{display:block;font:700 18px var(--display)}.lvsite small{color:var(--muted);font-size:12.5px}.lvsite .go{font-size:22px;opacity:.85}\n.lvrec{margin-top:10px}\n.lmplus{position:absolute;left:12px;bottom:14px;z-index:800;display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:999px;border:0;background:var(--accent,#3ad0c8);color:var(--accent-ink,#06201f);font:700 15px var(--display);box-shadow:0 6px 18px rgba(0,0,0,.4)}.lmplus span{font-size:22px;line-height:1}\n.lmsel b{display:block;font:700 18px var(--display)}.lmsel small{color:var(--muted)}.pkbar input{width:100%}\n.lvhead .tm{font:800 36px/1.1 var(--display);letter-spacing:-.5px;margin-top:2px}\n.lvb .ic{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:rgba(58,208,200,.14);font-size:22px}.lvb.main .ic{width:52px;height:52px;font-size:28px;background:rgba(58,208,200,.28)}\n.utile span:last-child{-webkit-line-clamp:2!important;font-weight:600}.lvp .pn small{display:block}\n";document.head.appendChild(s)})();
 
 })();
 </script></body></html>
