@@ -5844,7 +5844,7 @@ ivEsp=function(it){var p=_ivEsp23(it);if(it.kind==='anzuelo'&&it.uso)p.unshift(i
     }).catch(function(){});
   },700)})();
 /* siembras adicionales */
-(function(){var L=[['gear-seed3.json','seedLin2'],['gear-seed4.json','seedAli1d'],['gear-seed5.json','seedYuki'],['gear-seed6.json','seedTemu1']];var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);L.forEach(function(f){db.doc('gearMeta/'+f[1]).get().then(function(m){if(m&&m.exists)return;return fetch(f[0]).then(function(r){return r.json()}).then(function(j){return Promise.all(j.items.map(function(it){var o=Object.assign({},it),id=o.id;delete o.id;o.createdAt=Date.now();return db.collection('gearInv').doc(id).set(o)})).then(function(){return db.doc('gearMeta/'+f[1]).set({at:Date.now(),n:j.items.length})}).then(function(){toast(j.items.length+' artículos nuevos añadidos')})})}).catch(function(){})})},1500)})();
+(function(){var L=[['gear-seed3.json','seedLin2'],['gear-seed4.json','seedAli1d'],['gear-seed5.json','seedYuki'],['gear-seed6.json','seedTemu1'],['gear-seed7.json','seedLures2']];var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);L.forEach(function(f){db.doc('gearMeta/'+f[1]).get().then(function(m){if(m&&m.exists)return;return fetch(f[0]).then(function(r){return r.json()}).then(function(j){return Promise.all(j.items.map(function(it){var o=Object.assign({},it),id=o.id;delete o.id;o.createdAt=Date.now();return db.collection('gearInv').doc(id).set(o)})).then(function(){return db.doc('gearMeta/'+f[1]).set({at:Date.now(),n:j.items.length})}).then(function(){toast(j.items.length+' artículos nuevos añadidos')})})}).catch(function(){})})},1500)})();
 /* siembra AliExpress cuenta 2 (una vez) */
 (function(){var t=setInterval(function(){
   if(typeof db==='undefined'||!db)return;clearInterval(t);
@@ -6020,7 +6020,7 @@ eqCard=function(e,i,n){
 /* ===== p29: sección Equipo — categorías, fichas, alta/edición ===== */
 var EQV={view:'home',kind:null,id:null,draft:null,q:'',del:null};
 var EQKINDS={
-  cana:{t:'Cañas',one:'caña',f:[['name','Nombre *'],['largo','Largo (ej. 6 m)'],['tipo','Tipo (Spinning, Telescópica…)'],['accion','Acción'],['lanza','Peso de lance']],ic:'<path d="M4 20L20 4"/><path d="M8 16l2 2M12 12l2 2M16 8l2 2"/>'},
+  cana:{t:'Cañas',one:'caña',f:[['name','Nombre *'],['largo','Largo (ej. 6 m)'],['tipo','Tipo (Spinning, Telescópica…)'],['lanza','Acción (g) (ej. 50–100)'],['accion','Dureza (ej. HH, ultraligera)'],['tramos','Tramos'],['transporte','Largo plegada'],['peso','Peso'],['kg','Potencia máx. (kg)'],['anillas','Anillas'],['portacarretes','Portacarretes'],['material','Material']],ic:'<path d="M4 20L20 4"/><path d="M8 16l2 2M12 12l2 2M16 8l2 2"/>'},
   carrete:{t:'Carretes',one:'carrete',f:[['name','Nombre *'],['talla','Talla (ej. 4000)'],['relacion','Relación (ej. 5.2)'],['rodamientos','Rodamientos'],['peso','Peso']],ic:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v2M20 12h-2"/>'},
   corcho:{t:'Corchos',one:'corcho',f:[['fab','Marca'],['gr','Gramos'],['tam','Tamaño']],shape:true},
   anzuelo:{t:'Anzuelos',one:'anzuelo',f:[['modelo','Marca y modelo'],['num','Número'],['tipo','Tipo'],['gr','Gramos'],['pack','Pack (uds.)']]},
@@ -6028,8 +6028,8 @@ var EQKINDS={
   linea:{t:'Sedales y fluoros',one:'línea',f:[['marca','Marca'],['diam','Diámetro (mm)'],['lb','Libras'],['m','Metros'],['color','Color']],uso:['Bajo','Carrete'],ic:'<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4v16"/>'}
 };
 var EQCOM=[['tienda','Dónde lo compré'],['fecha','Fecha','date'],['precio','Precio (€)']];
-var EQLBL={name:'Nombre',marca:'Marca',largo:'Largo',tipo:'Tipo',accion:'Acción',lanza:'Peso de lance',talla:'Talla',relacion:'Relación',rodamientos:'Rodamientos',peso:'Peso',forma:'Forma',fab:'Marca',gr:'Gramos',tam:'Tamaño',modelo:'Modelo',num:'Número',grosor:'Grosor',estilo:'Estilo',mm:'Longitud (mm)',flota:'Flotabilidad',diam:'Diámetro (mm)',lb:'Libras',kg:'Kg',m:'Metros',hebras:'Hebras',color:'Color',uso:'Uso',tienda:'Tienda',fecha:'Fecha',precio:'Precio',cant:'Cantidad',pack:'Pack',origen:'Origen',variante:'Variante',lanza:'Peso de lance'};
-var EQORD=['name','marca','modelo','fab','estilo','tipo','uso','forma','largo','accion','lanza','talla','relacion','rodamientos','peso','num','gr','mm','flota','diam','lb','kg','m','hebras','color','tam','grosor','pack','variante','origen','tienda','fecha','precio','cant'];
+var EQLBL={ref:'Referencia',tramos:'Tramos',transporte:'Largo plegada',anillas:'Anillas',portacarretes:'Portacarretes',material:'Material',name:'Nombre',marca:'Marca',largo:'Largo',tipo:'Tipo',accion:'Dureza',lanza:'Acción (g)',talla:'Talla',relacion:'Relación',rodamientos:'Rodamientos',peso:'Peso',forma:'Forma',fab:'Marca',gr:'Gramos',tam:'Tamaño',modelo:'Modelo',num:'Número',grosor:'Grosor',estilo:'Estilo',mm:'Longitud (mm)',flota:'Flotabilidad',diam:'Diámetro (mm)',lb:'Libras',kg:'Potencia máx. (kg)',m:'Metros',hebras:'Hebras',color:'Color',uso:'Uso',tienda:'Tienda',fecha:'Fecha',precio:'Precio',cant:'Cantidad',pack:'Pack',origen:'Origen',variante:'Variante',lanza:'Acción (g)'};
+var EQORD=['name','marca','modelo','ref','fab','estilo','tipo','uso','forma','largo','lanza','accion','tramos','transporte','anillas','portacarretes','material','talla','relacion','rodamientos','peso','num','gr','mm','flota','diam','lb','kg','m','hebras','color','tam','grosor','pack','variante','origen','tienda','fecha','precio','cant'];
 (function(){var s=document.createElement('style');s.textContent=
 '.eqgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.eqcat{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;padding:14px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);color:var(--text,inherit)}.eqcat .eci{width:34px;height:34px;color:var(--accent)}.eqcat .eci svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.eqcat b{font:700 15px var(--display)}.eqcat small{color:var(--muted);font-size:12.5px}'+
 '.eqtop{display:flex;align-items:center;gap:8px;margin:0 0 8px}.eqtop h2{flex:1;margin:0;font:700 20px var(--display)}.eqback{padding:8px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);font:600 13px var(--display)}'+
@@ -6239,6 +6239,89 @@ document.addEventListener('click',function(ev){
     return ref.get().then(function(d){if(!(d&&d.exists))return;var o=d.data();if(o.bobinas)o.bobinas=o.bobinas.map(function(b){b.tipo=b.tipo||'Trenzado';return b});o.notas=(o.notas||[]).concat(['Las bobinas llevan trenzado, probablemente JOF o MANSTER W8 (por confirmar)']);return ref.set(o)}).then(function(){return db.doc('gearMeta/seedBobTrenz').set({at:Date.now()})});
   }).catch(function(){});
 },4200)})();
+
+/* Yuki Spirit: ficha oficial (una vez) */
+(function(){var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);
+  db.doc('gearMeta/seedYukiInfo').get().then(function(m){if(m&&m.exists)return;
+    var base={marca:'Yuki',tipo:'Telescópica (boloñesa)',accion:'HH',lanza:'50–100 g',tramos:'7',transporte:'1,60 m',kg:6,anillas:'Fuji KW',portacarretes:'Fuji Plate',material:'Carbono de alto módulo',mods:['Corcho'],
+      notas:['Caña telescópica para pesca a la boloñesa desde costa (boya/corcho)','Punta híbrida corta, acción dura (HH)','Aguanta capturas de hasta 6 kg de potencia','Ficha: yukicompetition.com']};
+    var D={'own-yuki-6':{ref:'CASP60A',peso:'490 g'},'own-yuki-7':{ref:'CASP70A',peso:'600 g'}};
+    return Promise.all(Object.keys(D).map(function(id){var ref=db.doc('gearInv/'+id);return ref.get().then(function(d){if(!(d&&d.exists))return;var o=d.data();Object.keys(base).forEach(function(k){if(o[k]==null||o[k]==='')o[k]=base[k]});Object.keys(D[id]).forEach(function(k){if(o[k]==null||o[k]==='')o[k]=D[id][k]});return ref.set(o)})})).then(function(){return db.doc('gearMeta/seedYukiInfo').set({at:Date.now()})});
+  }).catch(function(){});
+},4800)})();
+
+/* ===== p30: Barrido en la cabecera, junto al rayo ===== */
+(function(){
+  var q=document.querySelector('.qcbtn');
+  if(q&&!document.querySelector('.swbtn'))q.insertAdjacentHTML('afterend','<button class="cfgbtn qcbtn swbtn" data-a="sw-new" aria-label="Barrido"><svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h5a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h5"/></svg></button>');
+  var st=document.createElement('style');st.textContent='.swbtn{background:var(--surface)!important;color:var(--accent)!important}.topbar h1{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px!important;letter-spacing:-.01em}.topbar .when{display:none}.topbar .cfgbtn,.topbar .syncbtn{flex:none;width:36px;height:36px;min-width:0}.topbar .cfgbtn svg,.topbar .syncbtn svg{width:19px;height:19px}.topbar{gap:4px!important}';document.head.appendChild(st);
+  var _sw=swSection;
+  swSection=function(){return _sw().replace(/<button type="button" class="qcbig swbig"[\s\S]*?<\/button>/,'')};
+})();
+
+/* ===== p31: señuelos en dos grupos con iconos, corchos/boyas, migración de orden ===== */
+var SENICON={'Crankbait':'crank','Cucharilla':'spoon','Jig metálico':'jig','Minnow':'minnow','Paseante':'stick','Popper':'popper','Vibración':'vib','Ajing':'sworm','Anguila':'slug','Camarón':'sshrimp','Cangrejo':'scrab','Cola en T':'swim','Grub':'grub','Gusano':'sworm','Pulpo':'squid2','Swimbait':'swim','Cabeza plomada':'shad','Shad':'shad'};
+function senLbl(e){return String(e||'Otros').split(' (')[0]}
+function senIc(lbl){var k=SENICON[lbl]||'jig';return '<img class="bi stile-i" alt="" src="img/bait/'+k+'.webp">'}
+function senGroup(tipo){return eqList('senuelo').filter(function(x){return (x.tipo||'Rígido')===tipo})}
+function eqSenRows(l){return l.slice().sort(ORD23.senuelo).map(eqRow).join('')}
+function eqSenBody(){
+  var v=EQV,q=norm(v.q||'');
+  if(q){var l=eqList('senuelo').filter(function(it){return norm(invName(it)+' '+(it.estilo||'')+' '+ivEsp(it).join(' ')).indexOf(q)>-1});return l.length?eqSenRows(l):'<p class="hint">Nada con ese nombre.</p>'}
+  if(!v.grp){
+    return '<div class="sgrp">'+['Rígido','Vinilo'].map(function(t){var n=senGroup(t).length,ics=t==='Rígido'?['crank','minnow','jig']:['swim','grub','slug'];
+      return '<button type="button" class="sgbig" data-a="eqp-grp" data-g="'+t+'"><span class="sgi">'+ics.map(function(k){return '<img class="bi" alt="" src="img/bait/'+k+'.webp">'}).join('')+'</span><b>'+t+'</b><small>'+n+(n===1?' señuelo':' señuelos')+'</small></button>'}).join('')+'</div>';
+  }
+  if(!v.sub){
+    var g=senGroup(v.grp),m={},ord=[];g.forEach(function(it){var k=senLbl(it.estilo);if(!m[k]){m[k]=0;ord.push(k)}m[k]++});
+    ord.sort(function(a,b){if(a==='Cabeza plomada')return -1;if(b==='Cabeza plomada')return 1;return a.localeCompare(b,'es')});
+    return '<div class="stiles">'+ord.map(function(k){return '<button type="button" class="stile" data-a="eqp-sub" data-s="'+esc(k)+'">'+senIc(k)+'<b>'+esc(k)+'</b><small>'+m[k]+'</small></button>'}).join('')+'</div>'+(ord.length?'':'<p class="hint">Aún no tienes ninguno.</p>');
+  }
+  return eqSenRows(senGroup(v.grp).filter(function(it){return senLbl(it.estilo)===v.sub}));
+}
+var _eqPane31=eqPaneHTML;
+eqPaneHTML=function(){
+  var v=EQV;
+  if(!(v.view==='list'&&v.kind==='senuelo'))return _eqPane31();
+  var K=EQKINDS.senuelo;
+  var back=v.sub?'<button type="button" class="eqback" data-a="eqp-sub" data-s="">‹ '+esc(v.grp)+'</button>':v.grp?'<button type="button" class="eqback" data-a="eqp-grp" data-g="">‹ Señuelos</button>':'<button type="button" class="eqback" data-a="eqp-home">‹ Equipo</button>';
+  var title=v.sub||v.grp||'Señuelos';
+  return '<div class="eqtop">'+back+'<h2>'+esc(title)+'</h2><button type="button" class="btn small primary" data-a="eqp-new" data-k="senuelo">+ Añadir</button></div>'+
+    '<input type="search" id="eqq" placeholder="Buscar señuelo…" value="'+esc(v.q)+'" style="margin-bottom:10px"><div id="eqlist">'+eqSenBody()+'</div>';
+};
+var _eqLB31=eqListBody;
+eqListBody=function(l){return EQV.kind==='senuelo'?eqSenBody():_eqLB31(l)};
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest?ev.target.closest('[data-a="eqp-grp"],[data-a="eqp-sub"],[data-a="eqp-home"],[data-a="eqp-new"]'):null;if(!b)return;
+  var a=b.getAttribute('data-a'),v=EQV;
+  if(a==='eqp-grp'){v.grp=b.getAttribute('data-g')||null;v.sub=null;v.q='';eqRender()}
+  else if(a==='eqp-sub'){v.sub=b.getAttribute('data-s')||null;v.q='';eqRender()}
+  else if(a==='eqp-home'){v.grp=null;v.sub=null}
+  else if(a==='eqp-new'&&v.view==='list'&&v.kind==='senuelo'){var g=v.grp,s=v.sub;setTimeout(function(){if(EQV.view==='form'&&EQV.draft&&!EQV.id){if(g)EQV.draft.tipo=g;if(s)EQV.draft.estilo=s;eqRender()}},0)}
+},true);
+(function(){var s=document.createElement('style');s.textContent='.sgrp{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sgbig{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;border-radius:18px;border:1.5px solid var(--line);background:var(--surface);color:inherit}.sgbig .sgi{display:flex;flex-direction:column;gap:2px;align-items:center}.sgbig .sgi img{width:96px;height:34px;object-fit:contain}.sgbig b{font:700 18px var(--display)}.sgbig small{color:var(--muted)}.stiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);color:inherit}.stile img{width:100%;height:52px;object-fit:contain}.stile b{font:700 14px var(--display);text-align:center}.stile small{color:var(--muted);font-size:12px}';document.head.appendChild(s)})();
+/* corchos: boyas de surfcasting aparte */
+var _eqGroup31=eqGroup;
+eqGroup=function(it){if(it.kind==='corcho')return it.tipo==='Boya de surfcasting'||it.forma==='Bola'?'Boyas de surfcasting (levantan la carnada)':'Corchos';return _eqGroup31(it)};
+var _eqLB31b=eqListBody;
+eqListBody=function(l){
+  if(EQV.kind!=='corcho')return _eqLB31b(l);
+  var q=norm(EQV.q||'');if(q)l=l.filter(function(it){return norm(invName(it)+' '+ivEsp(it).join(' ')).indexOf(q)>-1});
+  if(!l.length)return '<p class="hint">Aún no tienes ninguno. Toca + Añadir.</p>';
+  var g={},ord=[];l.forEach(function(it){var k=eqGroup(it);if(!g[k]){g[k]=[];ord.push(k)}g[k].push(it)});
+  ord.sort(function(a,b){return a==='Corchos'?-1:b==='Corchos'?1:0});
+  return ord.map(function(k){return '<details class="eqg" open><summary><span>'+esc(k)+'</span><span>'+g[k].length+'</span></summary>'+g[k].map(eqRow).join('')+'</details>'}).join('');
+};
+var _ivEsp31=ivEsp;
+ivEsp=function(it){var p=_ivEsp31(it);if(it.kind==='corcho'&&(it.tipo==='Boya de surfcasting'||it.forma==='Bola')){p=p.map(function(x){return x==='sin gramaje'?'Boya de surfcasting':x})}return p};
+/* migración de orden (una vez por dispositivo) */
+(function(){
+  var PATCH={"ali-32": {"estilo": "Jig metálico", "foto": "img/gear/ali-32.v3.webp", "notas": ["Micro jig de 1,5 g con anzuelo triple", "Para ajing/rockfishing ligero"]}, "ali-86": {"foto": "img/gear/ali-86.v3.webp"}, "ali-99": {"foto": "img/gear/ali-99.v3.webp", "estilo": "Cabeza plomada"}, "ali-115": {"estilo": "Cabeza plomada"}, "ali1b-8": {"foto": "img/gear/ali1b-8.v3.webp"}, "ali-71": {"estilo": "Swimbait"}, "ali-87": {"estilo": "Swimbait"}, "ali-12": {"foto": "img/gear/ali-12.v3.webp"}, "ali-79": {"foto": "img/gear/ali-79.v3.webp"}, "ali-88": {"foto": "img/gear/ali-88.v3.webp"}, "ali-94": {"foto": "img/gear/ali-94.v3.webp"}, "ali-26": {"mods": ["Surfcasting"], "tipo": "Boya de surfcasting"}, "ali-28": {"mods": ["Surfcasting"], "tipo": "Boya de surfcasting"}};
+  var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);
+    db.doc('gearMeta/migOrd1').get().then(function(m){if(m&&m.exists)return;
+      return Promise.all(Object.keys(PATCH).map(function(id){var ref=db.doc('gearInv/'+id);return ref.get().then(function(d){if(!(d&&d.exists))return;return ref.set(Object.assign({},d.data(),PATCH[id]))})})).then(function(){return db.doc('gearInv/ali-113').delete().catch(function(){})}).then(function(){return db.doc('gearMeta/migOrd1').set({at:Date.now()})});
+    }).catch(function(){});
+  },5600)})();
 
 })();
 </script></body></html>
