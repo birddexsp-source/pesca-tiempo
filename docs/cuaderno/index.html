@@ -5796,7 +5796,7 @@ function ivEsp(it){
   return p.filter(Boolean);
 }
 function ivThumb(it){
-  if(it.foto)return '<img class="ivph" loading="lazy" alt="" src="'+esc(it.foto)+'">';
+  if(it.foto)return '<img class="ivph" decoding="async" alt="" src="'+esc(it.foto)+'">';
   var ic=it.kind==='corcho'?shIcon(it.forma||'Pera'):it.kind==='anzuelo'?hookIc(it.forma||'Anilla'):it.kind==='senuelo'&&typeof baitIcon==='function'?'':'';
   if(!ic)ic='<svg class="bi" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 24c6-10 20-12 30-2l6-6v16l-6-6C26 36 12 34 6 24z" fill="currentColor" fill-opacity=".16"/><circle cx="32" cy="22" r="1.6" fill="currentColor"/></svg>';
   return '<span class="ivph ivic">'+ic+'</span>';
@@ -5900,7 +5900,7 @@ var _st24=document.createElement('style');_st24.textContent='.rgi{grid-column:1/
 /* ===== p25: ilustraciones de cebos y señuelos ===== */
 var BAITIMG=["anchovy", "crank", "cuttle", "grub", "jig", "mackerel", "minnow", "mussel", "popper", "prawn", "sardine", "scrab", "shad", "shrimp", "shrimpb", "slug", "spoon", "squid", "squid2", "sshrimp", "stick", "swim", "sworm", "vib", "crab", "worm", "worm2", "limpet", "razor"];
 var _baitIcon25=baitIcon;
-baitIcon=function(name,cls){var k=baitIconKey(name);if(BAITIMG.indexOf(k)<0)return _baitIcon25(name,cls);return '<img class="bi'+(cls?' '+cls:'')+'" src="img/bait/'+k+'.webp" alt="" loading="lazy" decoding="async">'};
+baitIcon=function(name,cls){var k=baitIconKey(name);if(BAITIMG.indexOf(k)<0)return _baitIcon25(name,cls);return '<img class="bi'+(cls?' '+cls:'')+'" src="img/bait/'+k+'.webp" alt="" decoding="async">'};
 var _st25=document.createElement('style');_st25.textContent='img.bi{object-fit:contain;flex:none;width:34px;height:28px;color:inherit}.btile img.bi{width:68px;height:46px}img.bi.mini{width:26px;height:18px;vertical-align:-4px;margin-right:4px}';document.head.appendChild(_st25);
 
 /* ===== p26: elegir señuelos concretos (con foto) en spinning, rockfishing y jigging ===== */
@@ -5915,7 +5915,7 @@ function lureRow(e,i){
   var gk='e'+i+'lures',names=String(e.lureNames||'').split(' | ').filter(Boolean);
   return '<details class="gdet gsec lurerow" data-gk="'+gk+'"'+(GOPEN[gk]?' open':'')+'><summary><span>Señuelos</span><small>'+(names.length?names.length+' elegidos':lst.length+' guardados · toca para elegir')+'</small></summary><div class="gbody"><div class="lgrid">'+
     lst.map(function(it){var on=sel.indexOf(it.id)>-1;
-      return '<button type="button" class="lchip'+(on?' on':'')+'" data-a="lure-use" data-i="'+i+'" data-id="'+esc(it.id)+'" aria-pressed="'+on+'">'+(it.foto?'<img src="'+esc(it.foto)+'" alt="" loading="lazy">':'<span class="lnoimg"></span>')+'<span class="lt"><b>'+esc(it.marca||it.estilo||'Señuelo')+'</b><small>'+esc([it.estilo,it.gr?it.gr+' g':'',it.mm?it.mm+' mm':''].filter(Boolean).join(' · '))+'</small></span></button>'}).join('')+'</div></div></details>';
+      return '<button type="button" class="lchip'+(on?' on':'')+'" data-a="lure-use" data-i="'+i+'" data-id="'+esc(it.id)+'" aria-pressed="'+on+'">'+(it.foto?'<img src="'+esc(it.foto)+'" alt="">':'<span class="lnoimg"></span>')+'<span class="lt"><b>'+esc(it.marca||it.estilo||'Señuelo')+'</b><small>'+esc([it.estilo,it.gr?it.gr+' g':'',it.mm?it.mm+' mm':''].filter(Boolean).join(' · '))+'</small></span></button>'}).join('')+'</div></div></details>';
 }
 var _eqCard26=eqCard;
 eqCard=function(e,i,n){
@@ -7145,6 +7145,9 @@ var _compAdd34=compAdd;
 compAdd=function(c,m){_compAdd34(c,m||(COMPT==='live'&&LV?LV.mode:undefined))};
 var _stepSite34=stepSite;
 stepSite=function(){return _stepSite34().replace(/<div class="block startblk">[\s\S]*?<\/div>/,'')};
+
+/* ---------- fotos del equipo: reintenta si la red las pierde ---------- */
+window.addEventListener('error',function(ev){var im=ev.target;if(!im||im.tagName!=='IMG'||!/img\/gear\//.test(im.src||'')||im.__rt>=3)return;im.__rt=(im.__rt||0)+1;var s=im.getAttribute('src').split('?')[0];setTimeout(function(){im.src=s+'?r='+im.__rt},2500*im.__rt)},true);
 
 })();
 </script></body></html>
