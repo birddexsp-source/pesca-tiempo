@@ -138,7 +138,7 @@ function sync(onProgress){
   }
   return attempt(0).then(function(){LAST=now();meta('last',LAST);SYNCING=false;['sites','spots','trips','catches','forecast','speciesPhotos','barridos','gearInv'].forEach(notify);Object.keys(L).forEach(function(k){notify(k)});badge();return report},function(e){SYNCING=false;badge();throw e});
 }
-function guessType(u){if(u[0]===0xFF&&u[1]===0xD8)return 'image/jpeg';if(u[0]===0x89&&u[1]===0x50)return 'image/png';if(u[0]===0x52&&u[1]===0x49)return 'image/webp';return 'application/octet-stream'}
+function guessType(u){if(u[0]===0xFF&&u[1]===0xD8)return 'image/jpeg';if(u[0]===0x89&&u[1]===0x50)return 'image/png';if(u[0]===0x52&&u[1]===0x49)return 'image/webp';if(u[0]===0x1A&&u[1]===0x45)return 'audio/webm';if(u[0]===0x4F&&u[1]===0x67)return 'audio/ogg';if(u[4]===0x66&&u[5]===0x74&&u[6]===0x79)return 'audio/mp4';return 'application/octet-stream'}
 window.__CQ.sync=sync;window.__CQ.dirty=dirtyCount;
 /* ---------- exportar / importar ---------- */
 function exportAll(){
@@ -177,7 +177,7 @@ function badge(){
   var n=dirtyCount();BTN.innerHTML=ICON+(n?'<span class="nb">'+n+'</span>':'');
   BTN.className='syncbtn'+(SYNCING?' run':'')+(navigator.onLine?'':' off');
 }
-var TMT;function toastMsg(t){try{var el=document.getElementById('toast');if(el){var sp=document.createElement('span');sp.textContent=t;el.innerHTML='';el.appendChild(sp);clearTimeout(TMT);TMT=setTimeout(function(){el.innerHTML='';el.textContent=''},4200)}}catch(e){}}
+function toastMsg(t){try{var el=document.getElementById('toast');if(el){el.textContent=t;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},3200)}}catch(e){}}
 function onBtn(){var c=cfg();if(!c.repo||!c.token||BTN.classList.contains('err')){settings();return}
   runSync();}
 function runSync(setStat){
