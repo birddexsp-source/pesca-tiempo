@@ -6074,7 +6074,7 @@ function eqPaneHTML(){
       (it.foto?'<img class="big" alt="" src="'+esc(it.foto)+'">':(it.kind==='corcho'||it.kind==='anzuelo'?'<div style="text-align:center;margin:8px 0">'+ivThumb(it)+'</div>':''))+
       '<h2 style="margin:0 0 10px;font:700 20px var(--display)">'+esc(invName(it))+'</h2>'+
       (rows?'<dl>'+rows+'</dl>':'<p class="hint">Aún sin detalles. Toca Editar para completarlo.</p>')+
-      (it.mods&&it.mods.length?'<p class="hint" style="margin:0 0 12px">Se usa en: '+esc(it.mods.join(', '))+'</p>':'')+
+      eqBobDetail(it)+(it.mods&&it.mods.length?'<p class="hint" style="margin:0 0 12px">Se usa en: '+esc(it.mods.join(', '))+'</p>':'')+
       (notas.length?'<ul>'+notas.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul>':'')+
       '<div class="eqbtns"><button type="button" class="btn" data-a="eqp-edit" data-id="'+esc(it.id)+'">Editar</button><button type="button" class="btn danger" data-a="eqp-del" data-id="'+esc(it.id)+'">'+(v.del===it.id?'¿Seguro? Toca otra vez':'Quitar')+'</button></div></div>';
   }else if(v.view==='kind'){
@@ -6102,6 +6102,7 @@ function eqFormHTML(){
   if(K.tipo)h+=chips('tipo',K.tipo,'Tipo');
   if(K.shape)h+='<div class="fl"><label>Forma</label><div class="bgrid shgrid">'+SHAPES.map(function(n){var on=d.forma===n;return '<button type="button" class="btile'+(on?' on':'')+'" data-a="eqp-chip" data-f="forma" data-v="'+n+'" aria-pressed="'+on+'">'+shIcon(n)+'<span>'+n+'</span></button>'}).join('')+'</div></div>';
   K.f.forEach(function(f){h+=fld(f)});
+  if(v.kind==='carrete')h+=eqBobForm(d);
   h+='<div class="fl"><label>Se usa en (opcional)</label><div class="chips">'+MODOS.filter(function(m){return m.n!=='Solo mirar el mar'}).map(function(m){var on=(d.mods||[]).indexOf(m.n)>-1;return '<button type="button" class="chip'+(on?' on':'')+'" data-a="eqp-mod" data-v="'+esc(m.n)+'" aria-pressed="'+on+'">'+esc(m.n)+'</button>'}).join('')+'</div></div>';
   EQCOM.forEach(function(f){h+=fld(f,f[2])});
   h+='<div class="fl"><label for="eqf-notas">Notas (una por línea)</label><textarea id="eqf-notas" data-f="notas" rows="3">'+esc((d.notas||[]).join('\n'))+'</textarea></div>';
@@ -6111,6 +6112,7 @@ function eqFormHTML(){
 }
 function eqRead(){
   var d=EQV.draft||(EQV.draft={});
+  var bs=[];document.querySelectorAll('#eqpane [data-b]').forEach(function(el){var i=+el.dataset.b;bs[i]=bs[i]||{};bs[i][el.dataset.bf]=el.value.trim()});if(bs.length){var old=d.bobinas||[];d.bobinas=bs.filter(Boolean).map(function(x,i){x.tipo=(old[i]&&old[i].tipo)||'';return x})}
   document.querySelectorAll('#eqpane [data-f]').forEach(function(el){
     if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'){
       if(el.dataset.f==='notas')d.notas=el.value.split('\n').map(function(s){return s.trim()}).filter(Boolean);
@@ -6142,6 +6144,8 @@ document.addEventListener('click',function(ev){
   else if(a==='eqp-cancel'){v.view=v.id?'detail':(v.kind?'list':'home');eqRender()}
   else if(a==='eqp-chip'){eqRead();var f=b.getAttribute('data-f'),val=b.getAttribute('data-v');v.draft[f]=v.draft[f]===val?'':val;eqRender()}
   else if(a==='eqp-mod'){eqRead();var ms=v.draft.mods||(v.draft.mods=[]),val2=b.getAttribute('data-v'),ix=ms.indexOf(val2);if(ix<0)ms.push(val2);else ms.splice(ix,1);eqRender()}
+  else if(a==='eqp-bob-add'){eqRead();(v.draft.bobinas=v.draft.bobinas||[]).push({nom:'',base:'',linea:'',tipo:'Trenzado'});eqRender()}
+  else if(a==='eqp-bob-del'){eqRead();v.draft.bobinas.splice(+b.getAttribute('data-i'),1);eqRender()}
   else if(a==='eqp-del'){
     if(v.del!==id){v.del=id;eqRender();return}
     INV=INV.filter(function(x){return x.id!==id});v.del=null;v.view='list';eqRender();
@@ -6152,6 +6156,7 @@ document.addEventListener('click',function(ev){
     var main=K.f.map(function(x){return x[0]}).concat(['forma']).some(function(f){return d[f]});
     if((v.kind==='cana'||v.kind==='carrete')&&!d.name){toast('Escribe el nombre');return}
     if(!main){toast('Rellena al menos un dato');return}
+    if(d.bobinas)d.bobinas=d.bobinas.map(function(x){return {nom:x.nom||'',base:eqNum(x.base),linea:eqNum(x.linea),tipo:x.tipo||''}}).filter(function(x){return x.nom||x.base||x.linea});
     d.kind=v.kind;if(d.precio!==''&&d.precio!=null){var n=parseFloat(String(d.precio).replace(',','.'));d.precio=isNaN(n)?d.precio:n}
     var o={};Object.keys(d).forEach(function(f){if(f==='id')return;var x=d[f];if(x===''||x==null||(Array.isArray(x)&&!x.length))return;o[f]=x});
     var ref=v.id?db.doc('gearInv/'+v.id):db.collection('gearInv').doc();
@@ -6183,6 +6188,57 @@ document.addEventListener('change',function(ev){
     return Promise.all(['own-yuki-6','own-yuki-7'].map(function(id){var ref=db.doc('gearInv/'+id);return ref.get().then(function(d){if(!(d&&d.exists))return;var o=d.data();if(o.foto)return;o.foto='img/gear/own-yuki.webp';return ref.set(o)})})).then(function(){return db.doc('gearMeta/seedYukiFoto').set({at:Date.now()})});
   }).catch(function(){});
 },2500)})();
+
+/* bobinas de carrete: base gruesa de relleno + línea fina encima */
+function eqNum(x){return String(x==null?'':x).trim().replace(',','.')}
+function eqMm(x){return String(x).replace('.',',')}
+function bobTxt(b){return (b.nom||'Bobina')+': '+(b.base?eqMm(b.base)+' mm de relleno + ':'')+(b.linea?eqMm(b.linea)+' mm':'')+(b.tipo?' · '+b.tipo.toLowerCase():'')}
+function eqBobForm(d){
+  var l=d.bobinas||[];
+  return '<div class="fl"><label>Bobinas (relleno + línea fina)</label>'+(l.length?'':'<p class="hint" style="margin:0">Cada bobina lleva primero un hilo grueso de relleno y encima el fino con el que pescas.</p>')+
+    l.map(function(b,i){return '<div class="eqbob"><input data-b="'+i+'" data-bf="nom" placeholder="Nombre (ej. Roja)" value="'+esc(b.nom||'')+'"><input data-b="'+i+'" data-bf="base" inputmode="decimal" placeholder="Relleno mm" value="'+esc(b.base?eqMm(b.base):'')+'"><input data-b="'+i+'" data-bf="linea" inputmode="decimal" placeholder="Línea mm" value="'+esc(b.linea?eqMm(b.linea):'')+'"><button type="button" class="x" data-a="eqp-bob-del" data-i="'+i+'" aria-label="Quitar bobina">×</button></div>'}).join('')+
+    '<button type="button" class="btn small" data-a="eqp-bob-add">+ Añadir bobina</button></div>';
+}
+function eqBobDetail(it){
+  if(!it.bobinas||!it.bobinas.length)return '';
+  return '<h3 style="margin:0 0 6px;font:700 14px var(--display)">Bobinas</h3><ul>'+it.bobinas.map(function(b){return '<li>'+esc(bobTxt(b))+'</li>'}).join('')+'</ul>';
+}
+(function(){var s=document.createElement('style');s.textContent='.eqbob{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:6px;margin-bottom:6px}.eqbob input{min-width:0}';document.head.appendChild(s)})();
+var _ivEsp29=ivEsp;
+ivEsp=function(it){var p=_ivEsp29(it);if(it.kind==='carrete'&&it.bobinas&&it.bobinas.length)p.push(it.bobinas.length+(it.bobinas.length===1?' bobina':' bobinas'));return p};
+/* en la salida: elegir bobina del carrete elegido */
+if(typeof EQKEYS!=='undefined'&&EQKEYS.indexOf('bobina')<0)EQKEYS.push('bobina');
+var _lineaRow29=lineaRow;
+lineaRow=function(e,i,uso){
+  var h=_lineaRow29(e,i,uso);
+  if(uso!=='Carrete')return h;
+  var c=INV.filter(function(x){return x.kind==='carrete'&&x.name===e.carrete&&x.bobinas&&x.bobinas.length})[0];
+  if(!c)return h;
+  return '<div class="invrow"><span class="invl">Bobina del carrete</span><div class="chips invchips">'+c.bobinas.map(function(b,k){var on=e.bobina===(b.nom||'Bobina '+(k+1));return '<button type="button" class="chip'+(on?' on':'')+'" data-a="bob-use" data-i="'+i+'" data-k="'+k+'" data-id="'+esc(c.id)+'" aria-pressed="'+on+'">'+esc((b.nom||'Bobina '+(k+1))+(b.linea?' · '+eqMm(b.linea)+' mm':''))+'</button>'}).join('')+'</div></div>'+h;
+};
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest?ev.target.closest('[data-a="bob-use"]'):null;if(!b)return;
+  var i=+b.getAttribute('data-i'),e=tripDraft&&tripDraft.equipos&&tripDraft.equipos[i];if(!e)return;
+  var c=INV.filter(function(x){return x.id===b.getAttribute('data-id')})[0],bb=c&&c.bobinas[+b.getAttribute('data-k')];if(!bb)return;
+  var nom=bb.nom||'Bobina '+(+b.getAttribute('data-k')+1);
+  if(e.bobina===nom){e.bobina='';e.sedal=''}else{e.bobina=nom;e.sedal=nom+(bb.linea?' · '+eqMm(bb.linea)+' mm':'')+(bb.base?' (sobre '+eqMm(bb.base)+' mm)':'')}
+  GOPEN.top=true;GOPEN['e'+i+'cana']=true;gearRepaint();
+},true);
+/* bobinas del Sougayilang SA4000 (una vez) */
+(function(){var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);
+  db.doc('gearMeta/seedBobSA4000').get().then(function(m){if(m&&m.exists)return;
+    var ref=db.doc('gearInv/temu-reel-4000');
+    return ref.get().then(function(d){if(!(d&&d.exists))return;var o=d.data();if(!o.bobinas){o.bobinas=[{nom:'Negra',base:'0.28',linea:'0.165'},{nom:'Roja',base:'0.28',linea:'0.10'}];o.name='Sougayilang SA4000'}return ref.set(o)}).then(function(){return db.doc('gearMeta/seedBobSA4000').set({at:Date.now()})});
+  }).catch(function(){});
+},3200)})();
+
+/* bobinas SA4000: es trenzado (una vez) */
+(function(){var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);
+  db.doc('gearMeta/seedBobTrenz').get().then(function(m){if(m&&m.exists)return;
+    var ref=db.doc('gearInv/temu-reel-4000');
+    return ref.get().then(function(d){if(!(d&&d.exists))return;var o=d.data();if(o.bobinas)o.bobinas=o.bobinas.map(function(b){b.tipo=b.tipo||'Trenzado';return b});o.notas=(o.notas||[]).concat(['Las bobinas llevan trenzado, probablemente JOF o MANSTER W8 (por confirmar)']);return ref.set(o)}).then(function(){return db.doc('gearMeta/seedBobTrenz').set({at:Date.now()})});
+  }).catch(function(){});
+},4200)})();
 
 })();
 </script></body></html>
