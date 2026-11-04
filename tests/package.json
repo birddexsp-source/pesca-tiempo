@@ -1,0 +1,11 @@
+{
+  "name": "cuaderno-pesca-tests",
+  "private": true,
+  "description": "Pruebas automáticas del Cuaderno de pesca (docs/cuaderno)",
+  "scripts": {
+    "test": "node run.js",
+    "test:estatico": "node run.js estatico",
+    "test:lista": "node run.js --list"
+  },
+  "devDependencies": { "playwright": "^1.40.0" }
+}
