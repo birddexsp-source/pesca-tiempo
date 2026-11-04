@@ -4642,16 +4642,13 @@ function modeChips(cur){
 /* --- aparejos por modalidad (propuesta editable) --- */
 var RIGS={
   'Corcho':[
-    {n:'Corrida',d:'El corcho desliza por la línea hasta un tope a la profundidad elegida; el plomo y el bajo cuelgan debajo. Permite pescar más hondo que el largo de la caña.'},
-    {n:'Fija',d:'El corcho va fijo a la línea a una distancia concreta del anzuelo. Lance más sencillo; la profundidad queda limitada por el largo de la caña.'},
-    {n:'Libre (a la deriva)',d:'Corcho con muy poco o ningún lastre: el cebo deriva con la corriente, cerca de la superficie.'},
-    {n:'Con plomo en el bajo',d:'Corcho más un plomo pequeño en el bajo, para llevar la carnada abajo o mantenerla en su sitio con corriente.'}
+    {n:'Corrediza',d:'El corcho corre por la línea hasta un tope a la profundidad elegida, y el resto cuelga debajo. Permite pescar más hondo que el largo de la caña.'},
+    {n:'Fija',d:'El corcho va fijo a la línea, a una distancia concreta del anzuelo. Lance más sencillo; la profundidad queda limitada por el largo de la caña.'},
+    {n:'Libre (a la deriva)',d:'Corcho con muy poco o ningún lastre: el cebo deriva con la corriente, cerca de la superficie.'}
   ],
   'Plomín':[
-    {n:'Plomo corredizo',d:'El plomo desliza por la línea hasta un tope; el bajo con el anzuelo queda libre y el pez nota poca resistencia al picar.'},
-    {n:'Plomo fijo al final',d:'El plomo va atado al extremo de la línea y el anzuelo en un brazo lateral, por encima. Muy sensible en fondos limpios.'},
-    {n:'Paternoster',d:'Varios brazos con anzuelo a distintas alturas sobre un plomo en el extremo. Cubre varias profundidades a la vez.'},
-    {n:'Plomo ligero, bajo largo',d:'Plomo mínimo y bajo largo: la carnada cae despacio y se mueve casi natural.'}
+    {n:'Simple',d:'Plomo, quitavueltas y bajo con un solo anzuelo. Elige abajo dónde va el plomo.'},
+    {n:'Paternoster',d:'Varios brazos con anzuelo a distintas alturas sobre un plomo en el extremo. Cubre varias profundidades a la vez.'}
   ],
   'Natural':[
     {n:'Natural (sin plomo)',d:'Solo anzuelo y carnada, sin plomo ni boya. Para los días de mar muy llana.'}
@@ -4912,7 +4909,7 @@ var INVK=[
 ];
 function invName(it){
   if(it.kind==='corcho')return [it.forma,it.fab,it.gr?it.gr+' g':''].filter(Boolean).join(' · ');
-  if(it.kind==='anzuelo')return [it.modelo,it.num?'nº '+it.num:''].filter(Boolean).join(' ');
+  if(it.kind==='anzuelo')return [[it.modelo,it.num?'nº '+it.num:''].filter(Boolean).join(' '),it.forma,it.grosor].filter(Boolean).join(' · ');
   return it.name||'';
 }
 function invOf(k){return INV.filter(function(x){return x.kind===k}).sort(function(a,b){return invName(a).localeCompare(invName(b),'es')})}
@@ -4920,13 +4917,23 @@ function invSel(it,e){
   if(it.kind==='cana')return e.cana===it.name;
   if(it.kind==='carrete')return e.carrete===it.name;
   if(it.kind==='corcho')return (e.corchoForma||'')===(it.forma||'')&&(e.corchoFab||'')===(it.fab||'')&&String(e.corchoGr||'')===String(it.gr||'');
-  return (e.anzuelo||'')===(it.modelo||'')&&String(e.anzueloNum||'')===String(it.num||'');
+  return (e.anzuelo||'')===(it.modelo||'')&&String(e.anzueloNum||'')===String(it.num||'')&&(e.anzForma||'')===(it.forma||'')&&(e.anzGrosor||'')===(it.grosor||'');
 }
 function invApply(it,e){
   if(it.kind==='cana')e.cana=it.name;
   else if(it.kind==='carrete')e.carrete=it.name;
   else if(it.kind==='corcho'){e.corchoForma=it.forma||'';e.corchoFab=it.fab||'';e.corchoGr=it.gr?String(it.gr):''}
-  else{e.anzuelo=it.modelo||'';e.anzueloNum=it.num?String(it.num):''}
+  else{e.anzuelo=it.modelo||'';e.anzueloNum=it.num?String(it.num):'';e.anzForma=it.forma||'';e.anzGrosor=it.grosor||''}
+}
+var HK_FORMA=['Anilla','Paleta'], HK_GROSOR=['Fino','Medio','Grueso'];
+function hookIc(forma,w){
+  var top=forma==='Paleta'?'<path d="M19 6h10l-2 7h-6z" fill="currentColor" fill-opacity=".25"/>':'<circle cx="24" cy="9" r="4"/>';
+  return '<svg class="bi" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="'+(w||2.4)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+top+'<path d="M24 13v20a9 9 0 0 1-18 0v-3"/><path d="M6 30l-3-4"/></svg>';
+}
+function hookFG(f,g,af,ag){
+  var W={Fino:1.4,Medio:2.8,Grueso:4.6};
+  return '<div class="invrow"><span class="invl">Enganche</span><div class="bgrid shgrid">'+HK_FORMA.map(function(v){var on=f===v;return '<button type="button" class="btile'+(on?' on':'')+'" data-a="'+af+'" data-v="'+v+'" aria-pressed="'+on+'">'+hookIc(v)+'<span>'+(v==='Anilla'?'Con anilla (aro)':'Con paleta')+'</span></button>'}).join('')+'</div></div>'+
+    '<div class="invrow"><span class="invl">Grosor del anzuelo</span><div class="bgrid shgrid">'+HK_GROSOR.map(function(v){var on=g===v;return '<button type="button" class="btile'+(on?' on':'')+'" data-a="'+ag+'" data-v="'+v+'" aria-pressed="'+on+'">'+hookIc('Anilla',W[v])+'<span>'+v+'</span></button>'}).join('')+'</div></div>';
 }
 function invForm(k){
   var o='<div class="invform">';
@@ -4935,7 +4942,7 @@ function invForm(k){
     o+='<div class="bgrid shgrid">'+SHAPES.map(function(n){return '<button type="button" class="btile'+(INVF.forma===n?' on':'')+'" data-a="inv-shape" data-v="'+n+'" aria-pressed="'+(INVF.forma===n)+'">'+shIcon(n)+'<span>'+n+'</span></button>'}).join('')+'</div>'+
       '<div class="row"><input id="iv-fab" maxlength="40" placeholder="Marca" aria-label="Marca"><input id="iv-gr" inputmode="decimal" maxlength="6" placeholder="Gramos" aria-label="Gramos"></div>';
   }
-  if(k==='anzuelo')o+='<div class="row"><input id="iv-modelo" maxlength="50" placeholder="Marca y modelo" aria-label="Modelo"><input id="iv-num" maxlength="6" placeholder="Nº" aria-label="Número"></div>';
+  if(k==='anzuelo')o+='<div class="row"><input id="iv-modelo" maxlength="50" placeholder="Marca y modelo" aria-label="Modelo"><input id="iv-num" maxlength="6" placeholder="Nº" aria-label="Número"></div><div class="chips"><button type="button" class="chip" data-a="inv-mod" data-v="Decathlon Caperlan">Decathlon Caperlan</button></div>'+hookFG(INVF.hf,INVF.hg,'inv-hf','inv-hg');
   return o+'<button type="button" class="btn small primary" data-a="inv-save" data-k="'+k+'">Guardar en Mi equipo</button></div>';
 }
 function invChipRow(e,i,k){
@@ -4993,6 +5000,8 @@ document.addEventListener('click',function(ev){
   var a=b.getAttribute('data-a'); if(a.indexOf('inv-')!==0&&a!=='eq-set'&&a!=='eq-other')return;
   var i=+b.getAttribute('data-i'), e=tripDraft&&tripDraft.equipos&&tripDraft.equipos[i];
   if(a==='inv-open'){invOpen();return}
+  if(a==='inv-mod'){var mi=$('#iv-modelo');if(mi)mi.value=b.getAttribute('data-v');return}
+  if(a==='inv-hf'||a==='inv-hg'){var fk=a==='inv-hf'?'hf':'hg';INVF[fk]=INVF[fk]===b.getAttribute('data-v')?'':b.getAttribute('data-v');var keep={m:($('#iv-modelo')||{}).value,n:($('#iv-num')||{}).value};document.querySelectorAll('.invform [data-a="'+a+'"]').forEach(function(x){var on=x.getAttribute('data-v')===INVF[fk];x.classList.toggle('on',on);x.setAttribute('aria-pressed',on)});return}
   if(a==='eq-set'&&e){var f=b.getAttribute('data-f'),v=b.getAttribute('data-v');e[f]=e[f]===v?'':v;e['_o'+f]=false;GOPEN.top=true;GOPEN['e'+i+(f==='corchoForma'?'apar':'linea')]=true;gearRepaint();return}
   if(a==='eq-other'&&e){var f2=b.getAttribute('data-f');e['_o'+f2]=!e['_o'+f2];GOPEN.top=true;GOPEN['e'+i+'linea']=true;gearRepaint();var inp=$('#ef-'+i+f2);if(inp)inp.focus();return}
   if(a==='inv-new'){var k=b.getAttribute('data-k');INVADD=INVADD&&INVADD.i===i&&INVADD.k===k?null:{i:i,k:k};INVF={forma:''};GOPEN.top=true;GOPEN['e'+i+(k==='corcho'?'apar':k==='anzuelo'?'anz':'cana')]=true;gearRepaint();return}
@@ -5002,7 +5011,7 @@ document.addEventListener('click',function(ev){
     var k2=b.getAttribute('data-k'), g=function(id){var x=$('#'+id);return x?x.value.trim():''}, d={kind:k2,createdAt:Date.now()};
     if(k2==='cana'||k2==='carrete'){d.name=g('iv-name');if(!d.name){toast('Escribe el nombre');return}}
     if(k2==='corcho'){d.forma=INVF.forma;d.fab=g('iv-fab');d.gr=g('iv-gr').replace(',','.');if(!d.forma&&!d.fab&&!d.gr){toast('Elige la forma o pon la marca');return}}
-    if(k2==='anzuelo'){d.modelo=g('iv-modelo');d.num=g('iv-num');if(!d.modelo&&!d.num){toast('Pon el modelo o el número');return}}
+    if(k2==='anzuelo'){d.modelo=g('iv-modelo');d.num=g('iv-num');d.forma=INVF.hf||'';d.grosor=INVF.hg||'';if(!d.modelo&&!d.num){toast('Pon el modelo o el número');return}}
     var ctx=INVADD&&tripDraft&&tripDraft.equipos[INVADD.i]?INVADD.i:null; INVADD=null; INVF={forma:''};
     var ref=db.collection('gearInv').doc(); d.id=ref.id; INV.push(d);
     if(ctx!=null){invApply(d,tripDraft.equipos[ctx]);GOPEN.top=true}
@@ -5483,6 +5492,83 @@ openSpeciesDetail=function(k){
 };
 var _st19=document.createElement('style');_st19.textContent='.fi{display:block}.fi .bi{width:30px;height:30px;flex:none}.fi svg{display:block}.fiat{display:flex;gap:10px;align-items:center;background:var(--accent-soft);border:1px solid rgba(63,208,201,.45);border-radius:14px;padding:10px 12px;margin:6px 0 4px}.fiatb{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--accent);min-width:64px}.fiatb svg{width:26px;height:26px}.fiatb b{font:700 13px var(--display,inherit)}.fiat p{margin:0;font-size:13.5px;line-height:1.35}.fih2{margin:14px 0 6px;font:700 11px var(--mono,monospace);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.fiw{width:100%;height:auto;border-radius:14px}.fich{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}.fich1{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);font-size:12.5px}.fich1 svg{width:16px;height:16px;color:var(--accent)}.fim,.fih{display:grid;gap:4px;margin-top:2px}.fim{grid-template-columns:repeat(12,1fr)}.fih{grid-template-columns:repeat(4,1fr);margin-top:8px}.fih:has(.fic:nth-child(3):last-child){grid-template-columns:repeat(3,1fr)}.fic{position:relative;border-radius:8px;background:var(--surface);border:1px solid var(--line);padding:6px 2px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--dim)}.fic b{font:600 10.5px var(--body,inherit)}.fic svg{width:20px;height:20px}.fic i{display:block;width:100%;height:26px;border-radius:5px;background:var(--surface2)}.fic.l1{background:rgba(63,208,201,.14);border-color:rgba(63,208,201,.4);color:var(--ink)}.fic.l2{background:rgba(63,208,201,.38);border-color:var(--accent);color:var(--ink)}.fic.l1 i{background:rgba(63,208,201,.4)}.fic.l2 i{background:var(--accent)}.fic.l0 i{opacity:.4}.fic.now{box-shadow:0 0 0 2px var(--ink)}.fis{margin:6px 0 0;font-size:12.5px;color:var(--muted)}.fig{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}.fit{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px 8px;text-align:center;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-size:12px;line-height:1.2}.fit.fav{border-color:var(--accent);background:var(--accent-soft)}.fit .bi{width:34px;height:34px;color:var(--accent)}.fit em{font:700 9.5px var(--mono,monospace);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-style:normal}.fitip{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:13.5px;line-height:1.4}.fitip svg{width:20px;height:20px;color:#f5b041;flex:none;margin-top:1px}.finote{width:100%;box-sizing:border-box;background:var(--surface);color:var(--ink);border:1px solid var(--line2);border-radius:12px;padding:10px 12px;font:14px/1.4 var(--body,inherit);resize:vertical}';
 document.head.appendChild(_st19);
+
+/* ===== Aparejo: posición del plomo con dibujo, anzuelo con enganche y grosor ===== */
+['plomoPos','anzForma','anzGrosor'].forEach(function(k){if(EQKEYS.indexOf(k)<0)EQKEYS.push(k)});
+var _eqList20=eqList;
+eqList=function(t){var l=_eqList20(t);l.forEach(function(e){if(e&&e.aparejo==='Corrida')e.aparejo='Corrediza'});return l};
+var PLPOS=[['madre','Plomo en la madre','Antes del quitavueltas'],['bajo','Plomo en el bajo','Después del quitavueltas']];
+function rigSVG(mode,rig,pos){
+  var Y=54,s='<svg class="rgs" viewBox="0 0 320 120" role="img" aria-label="Esquema del montaje" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+  var A='var(--accent)',M='var(--muted)';
+  s+='<path d="M8 '+Y+'H306" stroke="'+M+'" stroke-width="1.6"/>';
+  s+='<text x="8" y="'+(Y-9)+'" font-size="10" fill="'+M+'" stroke="none">caña</text>';
+  var lead=function(x,on){return '<path d="M'+x+' '+(Y+2)+'v4" stroke="'+(on?A:M)+'"/><path d="M'+(x-8)+' '+(Y+22)+'a8 12 0 1 1 16 0a8 12 0 1 1-16 0z" fill="'+(on?A:'none')+'" fill-opacity="'+(on?.35:0)+'" stroke="'+(on?A:M)+'" '+(on?'':'stroke-dasharray="3 3" ')+'transform="translate(0,-3)"/>'};
+  var floatX=96;
+  if(mode==='Corcho'){
+    var fija=rig==='Fija';
+    if(!fija&&rig!=='Libre (a la deriva)')s+='<circle cx="52" cy="'+Y+'" r="3.4" fill="'+A+'" stroke="none"/><text x="52" y="'+(Y-12)+'" font-size="10" text-anchor="middle" fill="'+A+'" stroke="none">tope</text><path d="M60 '+(Y-3)+'h18m-4-3l4 3-4 3" stroke="'+A+'" stroke-width="1.6"/>';
+    s+='<path d="M'+floatX+' '+(Y-22)+'c9 0 12 9 12 20 0 9-4 14-12 14s-12-5-12-14c0-11 3-20 12-20z" fill="var(--accent-soft)" stroke="'+A+'"/><path d="M'+floatX+' '+(Y-30)+'v8" stroke="'+A+'"/>';
+    if(fija)s+='<circle cx="'+(floatX-14)+'" cy="'+Y+'" r="2.4" fill="'+A+'" stroke="none"/><circle cx="'+(floatX+14)+'" cy="'+Y+'" r="2.4" fill="'+A+'" stroke="none"/>';
+    s+='<text x="'+floatX+'" y="'+(Y+34)+'" font-size="10" text-anchor="middle" fill="'+M+'" stroke="none">corcho</text>';
+  }
+  if(mode==='Corcho'||mode==='Plomín'){
+    var sx=190;
+    s+=lead(150,pos==='madre')+lead(236,pos==='bajo');
+    s+='<circle cx="'+sx+'" cy="'+Y+'" r="5" fill="var(--bg)" stroke="'+A+'"/><path d="M'+sx+' '+(Y-5)+'v-3M'+sx+' '+(Y+5)+'v3" stroke="'+A+'"/>';
+    s+='<text x="'+sx+'" y="'+(Y-14)+'" font-size="10" text-anchor="middle" fill="'+A+'" stroke="none">quitavueltas</text>';
+    s+='<text x="268" y="'+(Y-8)+'" font-size="10" text-anchor="middle" fill="'+M+'" stroke="none">bajo</text>';
+    s+='<text x="150" y="'+(Y+44)+'" font-size="10" text-anchor="middle" fill="'+(pos==='madre'?A:M)+'" stroke="none">plomo</text>';
+    if(pos==='bajo')s+='<text x="236" y="'+(Y+44)+'" font-size="10" text-anchor="middle" fill="'+A+'" stroke="none">plomo</text>';
+    s+='<g transform="translate(298,'+Y+')" stroke="'+A+'"><path d="M0 0v22a7 7 0 0 1-14 0v-3"/><path d="M-14 19l-3-4"/></g>';
+    s+='<text x="298" y="'+(Y+44)+'" font-size="10" text-anchor="end" fill="'+M+'" stroke="none">anzuelo</text>';
+  }
+  return s+'</svg>';
+}
+function plomoUI(e,i,mode){
+  if(mode!=='Corcho'&&mode!=='Plomín')return '';
+  return '<div class="invrow"><span class="invl">Dónde va el plomo</span><div class="plpos">'+PLPOS.map(function(p){var on=e.plomoPos===p[0];return '<button type="button" class="chip'+(on?' on':'')+'" data-a="eq-s20" data-i="'+i+'" data-f="plomoPos" data-v="'+p[0]+'" data-g="apar" aria-pressed="'+on+'"><b>'+p[1]+'</b><small>'+p[2]+'</small></button>'}).join('')+'</div></div>'+rigSVG(mode,e.aparejo||'',e.plomoPos||'');
+}
+var _eqCard20=eqCard;
+eqCard=function(e,i,n){
+  var h=_eqCard20(e,i,n),mode=tripDraft&&tripDraft.mode;
+  var pu=plomoUI(e,i,mode);
+  if(pu){
+    var rx=new RegExp('<div class="field"><label for="ef-'+i+'plomo">[\\s\\S]*?</div>');
+    if(rx.test(h))h=h.replace(rx,function(m){return pu+m});
+  }
+  var W={Fino:1.4,Medio:2.8,Grueso:4.6};
+  var ex='<div class="invrow"><button type="button" class="chip" data-a="eq-s20" data-i="'+i+'" data-f="anzuelo" data-v="Decathlon Caperlan" data-g="anz">Decathlon Caperlan</button></div>'+hookFG(e.anzForma,e.anzGrosor,'eq-hf','eq-hg').replace(/data-a="eq-hf"/g,'data-a="eq-s20" data-i="'+i+'" data-f="anzForma" data-g="anz"').replace(/data-a="eq-hg"/g,'data-a="eq-s20" data-i="'+i+'" data-f="anzGrosor" data-g="anz"');
+  h=h.replace(new RegExp('(data-gk="e'+i+'anz"[\\s\\S]*?)</div></details>'),function(m,a){return a+ex+'</div></details>'});
+  return h;
+};
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest?ev.target.closest('[data-a="eq-s20"]'):null;if(!b||!tripDraft)return;
+  ev.stopPropagation();
+  var e=tripDraft.equipos[+b.getAttribute('data-i')];if(!e)return;
+  var f=b.getAttribute('data-f'),v=b.getAttribute('data-v');
+  e[f]=(f==='anzuelo')?v:(e[f]===v?'':v);
+  GOPEN.top=true;GOPEN['e'+b.getAttribute('data-i')+b.getAttribute('data-g')]=true;gearRepaint();
+},true);
+var _sum20=eqSecSum;
+eqSecSum=function(e,s){
+  var r=_sum20(e,s);
+  if(s.k==='apar'&&e.plomoPos&&e.plomo)r=r.replace('plomo '+e.plomo+' g','plomo '+e.plomo+' g en '+(e.plomoPos==='madre'?'la madre':'el bajo'));
+  else if(s.k==='apar'&&e.plomoPos&&!e.plomo)r=[r,'plomo en '+(e.plomoPos==='madre'?'la madre':'el bajo')].filter(Boolean).join(' · ');
+  if(s.k==='anz'){var x=[e.anzForma?(e.anzForma==='Anilla'?'anilla':'paleta'):'',e.anzGrosor?e.anzGrosor.toLowerCase():''].filter(Boolean).join(', ');if(x)r=[r,x].filter(Boolean).join(' · ')}
+  return r;
+};
+var _pill20=eqPillsArr;
+eqPillsArr=function(e){
+  var p=_pill20(e);
+  p=p.map(function(x){return (e.plomoPos&&x.indexOf('Plomo ')===0)?x+' · '+(e.plomoPos==='madre'?'en la madre':'en el bajo'):x});
+  if(e.plomoPos&&!e.plomo)p.push('Plomo en '+(e.plomoPos==='madre'?'la madre':'el bajo'));
+  p=p.map(function(x){return (x.indexOf('Anzuelo ')===0)?x+[e.anzForma?' · '+(e.anzForma==='Anilla'?'anilla':'paleta'):'',e.anzGrosor?' · '+e.anzGrosor.toLowerCase():''].join(''):x});
+  if(!e.anzuelo&&!e.anzueloNum&&(e.anzForma||e.anzGrosor))p.push('Anzuelo '+[e.anzForma==='Anilla'?'anilla':e.anzForma==='Paleta'?'paleta':'',(e.anzGrosor||'').toLowerCase()].filter(Boolean).join(', '));
+  return p;
+};
+var _st20=document.createElement('style');_st20.textContent='.gear>.rgs,.gear>.invrow{grid-column:1/-1}.rgs{display:block;width:100%!important;max-width:none!important;height:auto!important;margin:6px 0 8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 4px;color:var(--ink)}.plpos{display:grid;grid-template-columns:1fr 1fr;gap:8px}.plpos .chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;height:auto;padding:10px 12px;border-radius:14px}.plpos .chip small{font-size:11px;opacity:.75;font-weight:500}';
+document.head.appendChild(_st20);
 
 })();
 </script></body></html>
