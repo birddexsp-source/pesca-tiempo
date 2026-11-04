@@ -5844,7 +5844,7 @@ ivEsp=function(it){var p=_ivEsp23(it);if(it.kind==='anzuelo'&&it.uso)p.unshift(i
     }).catch(function(){});
   },700)})();
 /* siembras adicionales */
-(function(){var L=[['gear-seed3.json','seedLin2'],['gear-seed4.json','seedAli1d'],['gear-seed5.json','seedYuki']];var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);L.forEach(function(f){db.doc('gearMeta/'+f[1]).get().then(function(m){if(m&&m.exists)return;return fetch(f[0]).then(function(r){return r.json()}).then(function(j){return Promise.all(j.items.map(function(it){var o=Object.assign({},it),id=o.id;delete o.id;o.createdAt=Date.now();return db.collection('gearInv').doc(id).set(o)})).then(function(){return db.doc('gearMeta/'+f[1]).set({at:Date.now(),n:j.items.length})}).then(function(){toast(j.items.length+' artículos nuevos añadidos')})})}).catch(function(){})})},1500)})();
+(function(){var L=[['gear-seed3.json','seedLin2'],['gear-seed4.json','seedAli1d'],['gear-seed5.json','seedYuki'],['gear-seed6.json','seedTemu1']];var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);L.forEach(function(f){db.doc('gearMeta/'+f[1]).get().then(function(m){if(m&&m.exists)return;return fetch(f[0]).then(function(r){return r.json()}).then(function(j){return Promise.all(j.items.map(function(it){var o=Object.assign({},it),id=o.id;delete o.id;o.createdAt=Date.now();return db.collection('gearInv').doc(id).set(o)})).then(function(){return db.doc('gearMeta/'+f[1]).set({at:Date.now(),n:j.items.length})}).then(function(){toast(j.items.length+' artículos nuevos añadidos')})})}).catch(function(){})})},1500)})();
 /* siembra AliExpress cuenta 2 (una vez) */
 (function(){var t=setInterval(function(){
   if(typeof db==='undefined'||!db)return;clearInterval(t);
