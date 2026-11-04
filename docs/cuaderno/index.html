@@ -6177,6 +6177,12 @@ document.addEventListener('change',function(ev){
   };im.src=r.result};r.readAsDataURL(f);
 });
 (function(){var t=document.getElementById('t-equipo');if(t)t.addEventListener('click',function(){if(tab==='equipo'&&EQV.view!=='home'){EQV.view='home';EQV.q='';eqRender()}})})();
+/* foto de las Yuki Spirit (una vez) */
+(function(){var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);
+  db.doc('gearMeta/seedYukiFoto').get().then(function(m){if(m&&m.exists)return;
+    return Promise.all(['own-yuki-6','own-yuki-7'].map(function(id){var ref=db.doc('gearInv/'+id);return ref.get().then(function(d){if(!(d&&d.exists))return;var o=d.data();if(o.foto)return;o.foto='img/gear/own-yuki.webp';return ref.set(o)})})).then(function(){return db.doc('gearMeta/seedYukiFoto').set({at:Date.now()})});
+  }).catch(function(){});
+},2500)})();
 
 })();
 </script></body></html>
