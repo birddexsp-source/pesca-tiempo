@@ -5844,7 +5844,7 @@ ivEsp=function(it){var p=_ivEsp23(it);if(it.kind==='anzuelo'&&it.uso)p.unshift(i
     }).catch(function(){});
   },700)})();
 /* siembras adicionales */
-(function(){var L=[['gear-seed3.json','seedLin2'],['gear-seed4.json','seedAli1d'],['gear-seed5.json','seedYuki'],['gear-seed6.json','seedTemu1'],['gear-seed7.json','seedLures2']];var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);L.forEach(function(f){db.doc('gearMeta/'+f[1]).get().then(function(m){if(m&&m.exists)return;return fetch(f[0]).then(function(r){return r.json()}).then(function(j){return Promise.all(j.items.map(function(it){var o=Object.assign({},it),id=o.id;delete o.id;o.createdAt=Date.now();return db.collection('gearInv').doc(id).set(o)})).then(function(){return db.doc('gearMeta/'+f[1]).set({at:Date.now(),n:j.items.length})}).then(function(){toast(j.items.length+' artículos nuevos añadidos')})})}).catch(function(){})})},1500)})();
+(function(){var L=[['gear-seed3.json','seedLin2'],['gear-seed4.json','seedAli1d'],['gear-seed5.json','seedYuki'],['gear-seed6.json','seedTemu1'],['gear-seed7.json','seedLures2'],['gear-seed8.json','seedOwn1']];var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);L.forEach(function(f){db.doc('gearMeta/'+f[1]).get().then(function(m){if(m&&m.exists)return;return fetch(f[0]).then(function(r){return r.json()}).then(function(j){return Promise.all(j.items.map(function(it){var o=Object.assign({},it),id=o.id;delete o.id;o.createdAt=Date.now();return db.collection('gearInv').doc(id).set(o)})).then(function(){return db.doc('gearMeta/'+f[1]).set({at:Date.now(),n:j.items.length})}).then(function(){toast(j.items.length+' artículos nuevos añadidos')})})}).catch(function(){})})},1500)})();
 /* siembra AliExpress cuenta 2 (una vez) */
 (function(){var t=setInterval(function(){
   if(typeof db==='undefined'||!db)return;clearInterval(t);
@@ -6322,6 +6322,11 @@ ivEsp=function(it){var p=_ivEsp31(it);if(it.kind==='corcho'&&(it.tipo==='Boya de
       return Promise.all(Object.keys(PATCH).map(function(id){var ref=db.doc('gearInv/'+id);return ref.get().then(function(d){if(!(d&&d.exists))return;return ref.set(Object.assign({},d.data(),PATCH[id]))})})).then(function(){return db.doc('gearInv/ali-113').delete().catch(function(){})}).then(function(){return db.doc('gearMeta/migOrd1').set({at:Date.now()})});
     }).catch(function(){});
   },5600)})();
+/* foto oficial de la Yuki Spirit */
+(function(){var t=setInterval(function(){if(typeof db==='undefined'||!db)return;clearInterval(t);
+  db.doc('gearMeta/seedYukiFoto2').get().then(function(m){if(m&&m.exists)return;
+    return Promise.all(['own-yuki-6','own-yuki-7'].map(function(id){var ref=db.doc('gearInv/'+id);return ref.get().then(function(d){if(!(d&&d.exists))return;var o=d.data();o.foto='img/gear/own-yuki2.webp';return ref.set(o)})})).then(function(){return db.doc('gearMeta/seedYukiFoto2').set({at:Date.now()})});
+  }).catch(function(){})},6200)})();
 
 })();
 </script></body></html>
