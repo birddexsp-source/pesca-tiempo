@@ -6038,7 +6038,7 @@ var EQORD=['name','marca','modelo','ref','fab','estilo','tipo','uso','forma','la
 '.eqdet .big{width:100%;max-height:260px;object-fit:contain;border-radius:16px;background:var(--surface);padding:10px;margin:4px 0 12px}.eqdet dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0 0 12px}.eqdet dt{color:var(--muted);font-size:13px}.eqdet dd{margin:0;font-weight:600}.eqdet ul{margin:0 0 12px;padding-left:18px}'+
 '.eqf{display:flex;flex-direction:column;gap:10px}.eqf label{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}.eqf .fl{display:flex;flex-direction:column;gap:6px}.eqbtns{display:flex;gap:8px;margin-top:6px}.eqbtns .btn{flex:1}.eqph{max-height:110px;border-radius:12px;align-self:flex-start}';
 document.head.appendChild(s)})();
-function eqKindIc(k){
+function eqpKindIc(k){
   var d=EQKINDS[k];
   if(k==='corcho')return shIcon('Pera');
   if(k==='anzuelo')return hookIc('Anilla');
@@ -6053,14 +6053,14 @@ function eqGroup(it){
   return '';
 }
 function eqRow(it){
-  var th=(!it.foto&&(it.kind==='cana'||it.kind==='carrete'||it.kind==='linea'))?'<span class="ivph ivic">'+eqKindIc(it.kind)+'</span>':ivThumb(it);
+  var th=(!it.foto&&(it.kind==='cana'||it.kind==='carrete'||it.kind==='linea'))?'<span class="ivph ivic">'+eqpKindIc(it.kind)+'</span>':ivThumb(it);
   return '<button type="button" class="eqrow" data-a="eqp-open" data-id="'+esc(it.id)+'">'+th+'<span class="ivt"><b>'+esc(invName(it)||'Sin nombre')+'</b><small>'+esc(ivEsp(it).join(' · '))+'</small></span></button>';
 }
 function eqPaneHTML(){
   var v=EQV, h='';
   if(v.view==='home'){
     h='<div class="eqtop"><h2>Mi equipo</h2><button type="button" class="btn small primary" data-a="eqp-new">+ Añadir</button></div><p class="hint" style="margin:0 0 4px">'+INV.length+' cosas guardadas. Toca una categoría.</p><div class="eqgrid">'+
-      Object.keys(EQKINDS).map(function(k){var n=eqList(k).length;return '<button type="button" class="eqcat" data-a="eqp-cat" data-k="'+k+'"><span class="eci">'+eqKindIc(k)+'</span><b>'+EQKINDS[k].t+'</b><small>'+(n?n+(n===1?' guardado':' guardados'):'Vacío')+'</small></button>'}).join('')+'</div>';
+      Object.keys(EQKINDS).map(function(k){var n=eqList(k).length;return '<button type="button" class="eqcat" data-a="eqp-cat" data-k="'+k+'"><span class="eci">'+eqpKindIc(k)+'</span><b>'+EQKINDS[k].t+'</b><small>'+(n?n+(n===1?' guardado':' guardados'):'Vacío')+'</small></button>'}).join('')+'</div>';
   }else if(v.view==='list'){
     var K=EQKINDS[v.kind], lst=eqList(v.kind).sort(ORD23[v.kind]||function(){return 0});
     h='<div class="eqtop"><button type="button" class="eqback" data-a="eqp-home">‹ Equipo</button><h2>'+K.t+'</h2><button type="button" class="btn small primary" data-a="eqp-new" data-k="'+v.kind+'">+ Añadir</button></div>'+
@@ -6078,7 +6078,7 @@ function eqPaneHTML(){
       (notas.length?'<ul>'+notas.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul>':'')+
       '<div class="eqbtns"><button type="button" class="btn" data-a="eqp-edit" data-id="'+esc(it.id)+'">Editar</button><button type="button" class="btn danger" data-a="eqp-del" data-id="'+esc(it.id)+'">'+(v.del===it.id?'¿Seguro? Toca otra vez':'Quitar')+'</button></div></div>';
   }else if(v.view==='kind'){
-    h='<div class="eqtop"><button type="button" class="eqback" data-a="eqp-home">‹ Equipo</button><h2>¿Qué añades?</h2></div><div class="eqgrid">'+Object.keys(EQKINDS).map(function(k){return '<button type="button" class="eqcat" data-a="eqp-new" data-k="'+k+'"><span class="eci">'+eqKindIc(k)+'</span><b>'+EQKINDS[k].one.charAt(0).toUpperCase()+EQKINDS[k].one.slice(1)+'</b></button>'}).join('')+'</div>';
+    h='<div class="eqtop"><button type="button" class="eqback" data-a="eqp-home">‹ Equipo</button><h2>¿Qué añades?</h2></div><div class="eqgrid">'+Object.keys(EQKINDS).map(function(k){return '<button type="button" class="eqcat" data-a="eqp-new" data-k="'+k+'"><span class="eci">'+eqpKindIc(k)+'</span><b>'+EQKINDS[k].one.charAt(0).toUpperCase()+EQKINDS[k].one.slice(1)+'</b></button>'}).join('')+'</div>';
   }else if(v.view==='form'){
     h=eqFormHTML();
   }
