@@ -6889,6 +6889,8 @@ function lvChooser(){
     '<button type="button" class="lvc past" data-a="lv-past"><span class="big">📝</span><span class="tt"><b>Ya he pescado</b><small>Rellénala con calma: ayer, esta mañana, desde casa…</small></span><span class="cta">Rellenar salida</span></button></div>','','lvchoose');
 }
 window.addEventListener('click',function(ev){
+  var xb=ev.target.closest?ev.target.closest('[data-a="close-sheet"]'):null;
+  if(xb&&SESS&&(LVV==='spot'||LVV==='eq'||LVV==='note')){ev.stopPropagation();ev.preventDefault();recStopHard();LS=LE=LNOTE=null;sessOpen();return}
   var b=ev.target.closest?ev.target.closest('[data-a="new-trip"],[data-a="sess-finish"]'):null;if(!b)return;
   var a=b.getAttribute('data-a');
   if(a==='new-trip'){ev.stopPropagation();ev.preventDefault();if(SESS)sessOpen();else lvChooser();return}
@@ -7025,7 +7027,7 @@ function lvStart(){
 function lvEvRow(e){
   var ic='•',t='',sub='';
   if(e.type==='start'){ic='🟢';t='Empiezas a pescar';sub=e.name||''}
-  else if(e.type==='spot'){ic='📍';t='Cambio de spot'+(e.who&&e.who!=='all'?' · '+lvPName(e.who):e.who==='all'&&(SESS.companions||[]).length?' · todos':'');sub=[e.name,e.why].filter(Boolean).join(' · ')}
+  else if(e.type==='spot'){ic='📍';t='Cambio de spot'+(e.who&&e.who!=='all'?' · '+lvPName(e.who):e.who==='all'&&((SESS&&SESS.companions)||(tripDraft&&tripDraft.companions)||[]).length?' · todos':'');sub=[e.name,e.why].filter(Boolean).join(' · ')}
   else if(e.type==='eq'){ic='🎣';t='Cambio de equipo'+(e.mode?' · '+e.mode:'');sub=[e.names,e.why].filter(Boolean).join(' · ')}
   else if(e.type==='note'){ic='🎙';t='Nota de voz'}
   else if(e.type==='end'){ic='🏁';t=lvPName(e.who)+(e.who?' termina':' terminas')}
@@ -7037,11 +7039,11 @@ function lvConsoleHTML(){
   var ri=(s.equipos||[]).indexOf(rig);
   var head='<div class="block lvhead"><small class="hint">'+esc(s.mode||'Salida')+' · desde las '+esc(hhmm(s.startedAt))+'</small><div class="tm">'+esc(lvDur(s.startedAt,now))+'</div>'+
     '<p class="hint">📍 '+esc((pl&&pl.name)||s.siteName||'Sin ubicación fija')+'</p>'+(rig?'<p class="hint">🎣 '+((s.equipos||[]).length>1?'Equipo '+esc(eqLetter(ri))+' · ':'')+esc(lvRigTxt(rig)||'equipo sin detallar')+'</p>':'')+
-    '<p class="hint">'+cs.m+' tuyas'+(L.length?' · '+cs.o+' de compañeros':'')+'</p></div>';
+    '<p class="hint">'+cs.m+(cs.m===1?' tuya':' tuyas')+(L.length?' · '+cs.o+(cs.o===1?' de un compañero':' de compañeros'):'')+'</p></div>';
   var grid='<div class="lvgrid"><button type="button" class="lvb main" data-a="lv-cap"><span class="ic">⚡</span><span><b>Captura</b><br><small>Especie, talla y cebo en 3 toques</small></span></button>'+
-    '<button type="button" class="lvb" data-a="lv-spot"><span class="ic">📍</span><b>Cambio de spot</b><small>Me muevo de sitio</small></button>'+
-    '<button type="button" class="lvb" data-a="lv-eq"><span class="ic">🎣</span><b>Cambio de equipo</b><small>Otra caña, cebo o modalidad</small></button>'+
-    '<button type="button" class="lvb" data-a="lv-voice" style="grid-column:1/3"><span class="ic">🎙</span><b>Nota de voz</b><small>Para contarlo sin escribir</small></button></div>';
+    '<button type="button" class="lvb" data-a="lv-spot"><span class="ic">📍</span><b>Cambio de spot</b><small>Con motivo o nota de voz</small></button>'+
+    '<button type="button" class="lvb" data-a="lv-eq"><span class="ic">🎣</span><b>Cambio de equipo</b><small>Con motivo o nota de voz</small></button>'+
+    '</div>';
   var pp=lvPeople().map(function(p){
     var end=(s.ends||{})[p.id||'me'],w=(s.where||{})[p.id],mode=p.id?(p.mode||''):(s.mode||'');
     return '<div class="lvp"><span class="cav">'+esc(p.id?compInit(p):'T')+'</span><div class="pn"><b>'+esc(p.name)+'</b><small>'+esc([mode,w&&w.name&&p.id?'📍 '+w.name:''].filter(Boolean).join(' · '))+'</small><small class="'+(end?'off':'on')+'">'+(end?'terminó '+esc(hhmm(end))+' · '+esc(lvDur(s.startedAt,end)):'pescando · '+esc(lvDur(s.startedAt,now)))+'</small></div>'+
@@ -7080,14 +7082,16 @@ function lvSpotBody(){
 function lvGeo(){return new Promise(function(res){try{navigator.geolocation.getCurrentPosition(function(p){res({lat:p.coords.latitude,lon:p.coords.longitude})},function(){res(null)},{enableHighAccuracy:true,timeout:6000,maximumAge:20000})}catch(e){res(null)}})}
 async function lvSpotSave(){
   var L=LS;if(!L)return;
-  if(!L.spotId&&!L.siteId){toast('Elige a dónde vas');return}
+  if(!L.siteId&&!L.spotId){toast('Elige a dónde vas');return}
+  if(!L.spotId&&L.siteId===(SESS.siteId||'')){toast('Elige el spot al que te mueves, o cambia de sitio');return}
   var sp=L.spotId&&L.spotId!=='gps'?spots.filter(function(s){return s.id===L.spotId})[0]:null,st=L.siteId?siteOf(L.siteId):null,place={};
   if(sp)place={id:sp.id,name:sp.name};else if(L.spotId==='gps'){place={name:(st?st.name+' · ':'')+'punto nuevo'};var g=await lvGeo();if(g){place.lat=g.lat;place.lon=g.lon}}else if(st)place={name:st.name};
   if(st)place.siteId=st.id;
   var tg=L.who==='all'?lvPeople().map(function(p){return p.id}):[L.who],w=SESS.where||{};
   tg.forEach(function(k){w[k]=place});SESS.where=w;
   if(tg.indexOf('')>-1&&st){SESS.siteId=st.id;SESS.siteName=st.name}
-  var aud=await lvUpAudio(),ev={t:Date.now(),type:'spot',who:L.who,name:place.name||''};if(L.why)ev.why=L.why;if(aud)ev.audio=aud;if(place.lat!=null){ev.lat=place.lat;ev.lon=place.lon}if(sp)ev.spotId=sp.id;
+  var aud=await lvUpAudio();if(LA&&!aud){toast('No se pudo guardar el audio. Inténtalo otra vez.');return}
+  var ev={t:Date.now(),type:'spot',who:L.who,name:place.name||''};if(L.why)ev.why=L.why;if(aud)ev.audio=aud;if(place.lat!=null){ev.lat=place.lat;ev.lon=place.lon}if(sp)ev.spotId=sp.id;
   SESS.events=(SESS.events||[]).concat([ev]);
   lvSave({where:SESS.where,siteId:SESS.siteId||null,siteName:SESS.siteName||'',events:SESS.events});
   LS=null;LA=null;toast('Spot cambiado: '+(place.name||''));sessOpen();
@@ -7105,7 +7109,8 @@ async function lvEqSave(){
   var L=LE;if(!L)return;
   var key=JSON.stringify(useList(L.rig).map(function(u){return u.id+(u.bob||'')}).sort()),chg=key!==L.key0,mchg=L.mode!==L.mode0;
   if(!chg&&!mchg&&!L.why&&!LA){toast('No has cambiado nada');return}
-  var aud=await lvUpAudio(),ev={t:Date.now(),type:'eq'};
+  var aud=await lvUpAudio();if(LA&&!aud){toast('No se pudo guardar el audio. Inténtalo otra vez.');return}
+  var ev={t:Date.now(),type:'eq'};
   if(chg||(!lvCurRig()&&!eqEmpty(L.rig))){var rig=JSON.parse(JSON.stringify(L.rig));rig.id=eqId();if(L.why&&(SESS.equipos||[]).length)rig.why=L.why;SESS.equipos=(SESS.equipos||[]).concat([rig]);SESS.curEq=rig.id;ev.eq=rig.id;ev.names=lvRigTxt(rig)}
   if(mchg){SESS.mode=L.mode;ev.mode=L.mode}
   if(L.why)ev.why=L.why;if(aud)ev.audio=aud;
@@ -7190,7 +7195,7 @@ sessFinish=function(){
 function lvRegHTML(d){
   var E=(d.eventos||[]).filter(function(e){return e.type!=='fin'});if(!E.length)return '';
   var A=E.filter(function(e){return e.audio});
-  return '<div class="block lvtl"><h3>Registro de la salida</h3>'+E.map(lvEvRow).join('')+(A.length?'<p class="hint" style="margin-top:8px">Para pasar un audio a texto, descárgalo y mándamelo por el chat:</p>'+A.map(function(e){return audSrc(e.audio)?'<a class="btn small dlbtn" href="'+audSrc(e.audio)+'" download="nota-'+esc(d.date||'')+'-'+esc(hhmm(e.t).replace(':',''))+'.'+audExt(e.audio)+'">Descargar nota de las '+esc(hhmm(e.t))+'</a> ':''}).join(''):'')+'</div>';
+  return '<div class="block lvtl"><h3>Registro de la salida</h3>'+E.map(lvEvRow).join('')+(A.length?'<p class="hint" style="margin-top:8px">Para pasar un audio a texto, descárgalo y mándamelo por el chat:</p>'+A.map(function(e){return audSrc(e.audio)?'<a class="btn small dlbtn" href="'+audSrc(e.audio)+'" download="nota-'+esc(d.date||'')+'-'+esc(hhmm(e.t).replace(':',''))+'.'+audExt(e.audio)+'">Descargar audio · '+(e.type==='spot'?'spot':e.type==='eq'?'equipo':'nota')+' '+esc(hhmm(e.t))+'</a> ':''}).join(''):'')+'</div>';
 }
 var _stepSummary34=stepSummary;
 stepSummary=function(){
@@ -7223,6 +7228,20 @@ useTile=function(it,e,i){
 };
 
 (function(){var s=document.createElement('style');s.textContent=".lvch{display:flex;flex-direction:column;gap:14px;min-height:calc(100dvh - 130px);padding:4px 0 8px}\n.lvc{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:22px;border-radius:24px;border:1.5px solid var(--line);color:inherit;text-align:left;position:relative;overflow:hidden;background:var(--surface)}\n.lvc .big{font-size:54px;line-height:1;position:absolute;top:20px;left:22px}\n.lvc .tt b{display:block;font:700 26px/1.1 var(--display);margin-bottom:6px}.lvc .tt small{display:block;color:var(--muted);font-size:14px;line-height:1.35}\n.lvc .cta{align-self:flex-start;padding:11px 18px;border-radius:999px;font:700 15px var(--display);background:rgba(255,255,255,.08);border:1px solid var(--line2)}\n.lvc.live{background:radial-gradient(120% 90% at 20% 0%,rgba(58,208,200,.35),rgba(58,208,200,.06) 60%),var(--surface);border-color:rgba(58,208,200,.7)}\n.lvc.live .cta{background:var(--accent,#3ad0c8);color:var(--accent-ink,#06201f);border:0}\n.lvc.past{background:radial-gradient(120% 90% at 20% 0%,rgba(255,190,60,.16),transparent 60%),var(--surface)}\n.lvsite{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:16px;border:1.5px solid rgba(58,208,200,.55);background:linear-gradient(135deg,rgba(58,208,200,.16),rgba(58,208,200,.04));color:inherit;text-align:left}\n.lvsite .pin{font-size:26px}.lvsite .tx{flex:1;min-width:0}.lvsite b{display:block;font:700 18px var(--display)}.lvsite small{color:var(--muted);font-size:12.5px}.lvsite .go{font-size:22px;opacity:.85}\n.lvrec{margin-top:10px}\n.lmplus{position:absolute;left:12px;bottom:14px;z-index:800;display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:999px;border:0;background:var(--accent,#3ad0c8);color:var(--accent-ink,#06201f);font:700 15px var(--display);box-shadow:0 6px 18px rgba(0,0,0,.4)}.lmplus span{font-size:22px;line-height:1}\n.lmsel b{display:block;font:700 18px var(--display)}.lmsel small{color:var(--muted)}.pkbar input{width:100%}\n.lvhead .tm{font:800 36px/1.1 var(--display);letter-spacing:-.5px;margin-top:2px}\n.lvb .ic{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:rgba(58,208,200,.14);font-size:22px}.lvb.main .ic{width:52px;height:52px;font-size:28px;background:rgba(58,208,200,.28)}\n.utile span:last-child{-webkit-line-clamp:2!important;font-weight:600}.lvp .pn small{display:block}\n";document.head.appendChild(s)})();
+
+/* ---------- cronómetro vivo y botón atrás del móvil ---------- */
+setInterval(function(){
+  if(!SESS||LVV!=='console')return;var tm=document.querySelector('#sessbody .tm');if(!tm)return;
+  var now=Date.now();tm.textContent=lvDur(SESS.startedAt,now);
+  var rows=document.querySelectorAll('#sessbody .lvp');lvPeople().forEach(function(p,i){var r=rows[i];if(!r)return;if(!(SESS.ends||{})[p.id||'me']){var sm=r.querySelector('small.on');if(sm)sm.textContent='pescando · '+lvDur(SESS.startedAt,now)}});
+},20000);
+try{history.pushState({cq:1},'')}catch(e){}
+window.addEventListener('popstate',function(){
+  var pk=$('#pick'),sh=$('#sheet'),done=false;
+  if(pk&&!pk.hidden){var c=pk.querySelector('[data-a="mp-cancel"]');if(c)c.click();else closePick();done=true}
+  else if(sh&&!sh.hidden){var x=sh.querySelector('[data-a="close-sheet"]');if(x)x.click();else closeSheet();done=true}
+  if(done){try{history.pushState({cq:1},'')}catch(e){}}
+});
 
 })();
 </script></body></html>
