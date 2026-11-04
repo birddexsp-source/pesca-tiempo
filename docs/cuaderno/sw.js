@@ -1,4 +1,4 @@
-const V='cuaderno-v8',SHELL=['./','index.html','leaflet.min.js','shim.js','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','seed-species.json','gear-seed.json'];
+const V='cuaderno-v9',SHELL=['./','index.html','leaflet.min.js','shim.js','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','seed-species.json','gear-seed.json'];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{const c=await caches.open(V);await Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})));
  try{const s=await (await fetch('seed-species.json',{cache:'no-cache'})).json();await Promise.all(s.files.map(f=>c.add('img/'+f).catch(()=>{})))}catch(_){}
  self.skipWaiting()})())});

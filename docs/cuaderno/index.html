@@ -5799,7 +5799,7 @@ function ivThumb(it){
 }
 function ivRow(it){
   var esp=ivEsp(it), notas=(it.notas||[]), meta=[it.origen,it.tienda,it.fecha,it.precio!=null?(it.precio+' €'+(it.cant>1?' ×'+it.cant:'')):''].filter(Boolean);
-  var det=(notas.length?'<ul class="ivn">'+notas.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul>':'')+(meta.length?'<div class="ivm">'+esc(meta.join(' · '))+(it.variante?'<br>Variante: '+esc(it.variante):'')+'</div>':'');
+  var det=(it.mods&&it.mods.length?'<div class="ivm" style="margin-bottom:4px">Se usa en: '+esc(it.mods.join(', '))+'</div>':'')+(notas.length?'<ul class="ivn">'+notas.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul>':'')+(meta.length?'<div class="ivm">'+esc(meta.join(' · '))+(it.variante?'<br>Variante: '+esc(it.variante):'')+'</div>':'');
   return '<details class="ivit"><summary>'+ivThumb(it)+'<span class="ivt"><b>'+esc(invName(it))+'</b><small>'+esc(esp.join(' · '))+'</small></span><button type="button" class="x" data-a="inv-del" data-id="'+esc(it.id)+'" aria-label="Quitar">×</button></summary>'+(det?'<div class="ivd">'+det+'</div>':'')+'</details>';
 }
 invManagerHTML=function(){
@@ -5815,16 +5815,30 @@ invManagerHTML=function(){
   }).join('');
 };
 (function(){var s=document.createElement('style');s.textContent='.ivg{font:700 11px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:8px 2px 0}.ivit{border:1.5px solid var(--line);border-radius:12px;background:var(--surface)}.ivit>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:7px 8px;cursor:pointer}.ivit>summary::-webkit-details-marker{display:none}.ivph{width:52px;height:52px;flex:none;border-radius:10px;object-fit:contain;background:var(--surface2);padding:3px;box-sizing:border-box}.ivic{display:flex;align-items:center;justify-content:center;color:var(--accent)}.ivic svg{width:30px;height:30px}.ivt{flex:1;min-width:0;display:flex;flex-direction:column}.ivt b{font:700 13.5px var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ivt small{color:var(--muted);font:500 11.5px var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ivit .x{background:none;border:0;color:var(--muted);font-size:20px;padding:0 6px}.ivd{padding:2px 12px 10px 70px;font:500 12.5px var(--display)}.ivn{margin:0 0 6px;padding-left:16px}.ivn li{margin:2px 0}.ivm{color:var(--muted);font-size:11.5px}';document.head.appendChild(s)})();
-/* siembra AliExpress cuenta 1 (una sola vez; lo borrado no vuelve) */
-(function(){var t=setInterval(function(){
-  if(typeof db==='undefined'||!db)return;clearInterval(t);
-  db.doc('gearMeta/seedAli1').get().then(function(m){
-    if(m&&m.exists)return;
-    return fetch('gear-seed.json').then(function(r){return r.json()}).then(function(j){
-      return Promise.all(j.items.map(function(it){var o=Object.assign({},it),id=o.id;delete o.id;o.createdAt=Date.now();return db.collection('gearInv').doc(id).set(o)})).then(function(){return db.doc('gearMeta/seedAli1').set({at:Date.now(),n:j.items.length})}).then(function(){toast(j.items.length+' artículos de AliExpress añadidos')});
-    });
-  }).catch(function(){});
-},700)})();
+/* filtro por modalidad: solo equipo de la modalidad elegida */
+var INVMODE=null;
+var _invOf23b=invOf;
+invOf=function(k){var l=_invOf23b(k);var m=INVMODE;return m?l.filter(function(x){return !x.mods||!x.mods.length||x.mods.indexOf(m)>-1}):l};
+var _eqCard23=eqCard;
+eqCard=function(e,i,n){INVMODE=e.mode||(tripDraft&&tripDraft.mode)||null;try{return _eqCard23(e,i,n)}finally{INVMODE=null}};
+var _ivEsp23=ivEsp;
+ivEsp=function(it){var p=_ivEsp23(it);if(it.kind==='anzuelo'&&it.uso)p.unshift(it.uso);return p};
+(function(){var _m=invManagerHTML;invManagerHTML=function(){INVMODE=null;return _m()}})();
+/* siembra AliExpress cuenta 1 */
+(function(){
+  function put(j,onlyExisting){
+    return Promise.all(j.items.map(function(it){var o=Object.assign({},it),id=o.id;delete o.id;var ref=db.collection('gearInv').doc(id);
+      return ref.get().then(function(d){if(onlyExisting&&!(d&&d.exists))return;if(!onlyExisting||!d.exists){}var base=d&&d.exists?d.data():{createdAt:Date.now()};return ref.set(Object.assign({},base,o))})}));
+  }
+  var t=setInterval(function(){
+    if(typeof db==='undefined'||!db)return;clearInterval(t);
+    db.doc('gearMeta/seedAli1').get().then(function(m){
+      return fetch('gear-seed.json').then(function(r){return r.json()}).then(function(j){
+        if(!(m&&m.exists))return put(j,false).then(function(){return db.doc('gearMeta/seedAli1').set({at:Date.now(),n:j.items.length})}).then(function(){return db.doc('gearMeta/seedAli1b').set({at:Date.now()})}).then(function(){toast(j.items.length+' artículos de AliExpress añadidos')});
+        return db.doc('gearMeta/seedAli1b').get().then(function(m2){if(m2&&m2.exists)return;return put(j,true).then(function(){return db.doc('gearMeta/seedAli1b').set({at:Date.now()})}).then(function(){toast('Mi equipo actualizado (fotos y modalidades)')})});
+      });
+    }).catch(function(){});
+  },700)})();
 
 })();
 </script></body></html>
