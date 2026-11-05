@@ -97,5 +97,21 @@ module.exports = {
       t.eq('2 notas nuevas en el registro', tr.eventos.filter(e => e.audio).length, 2);
       t.ok('el aviso desaparece', !(await t.has('.ovblk')));
     });
+    await t.case('añadir a mano al registro: «Mikel se movió a Cala de abajo, en el charco»', async () => {
+      await t.put('trips', 'casa1', { date: '2026-11-03', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], companions: [{ id: 'k1', name: 'Mikel' }] });
+      await t.reload(); await t.goTab('salidas');
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a="edit-trip"][data-id="casa1"]'); b && b.click(); }); await t.wait(700);
+      for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 450);
+      t.ok('botón para añadir al registro', await t.has('[data-a="rx-open"]'));
+      await t.tap('[data-a="rx-open"]', 300); await t.tap('[data-a="rx-who"][data-id="k1"]', 300);
+      await t.tap('[data-a="rx-save"]', 300); t.ok('pide spot o detalle', /Elige el spot/.test(await t.toast() || ''));
+      await t.page.selectOption('#rx-spot', 'sp2'); await t.fill('#rx-why', 'a la derecha, en el charco'); await t.tap('[data-a="rx-save"]', 500);
+      const reg = await t.T('.lvtl'); t.ok('aparece en el registro con quién y dónde', reg.includes('Mikel') && reg.includes('Cala de abajo') && reg.includes('charco'), reg);
+      await t.tap('[data-a="rx-open"]', 300); await t.tap('[data-a="rx-type"][data-v="note"]', 300); await t.fill('#rx-why', 'El Charro: pez de colores tipo durdo'); await t.tap('[data-a="rx-save"]', 500);
+      t.ok('nota añadida', (await t.T('.lvtl')).includes('Charro'));
+      await t.tap('[data-a="save-trip"]', 1500);
+      const ev = (await t.docs('trips')).find(x => x.id === 'casa1').eventos || [];
+      t.ok('guardado en la salida', ev.length === 2 && ev.some(e => e.type === 'spot' && e.who === 'k1' && e.name === 'Cala de abajo') && ev.some(e => e.type === 'note'));
+    });
   }
 };
