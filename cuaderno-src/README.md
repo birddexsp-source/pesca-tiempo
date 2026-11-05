@@ -12,7 +12,7 @@ Los datos viven en el móvil (IndexedDB) y se sincronizan solos al repo privado 
 | App publicada (lo que ve el móvil) | `docs/cuaderno/` (`index.html`, `sw.js`, `shim.js`, `img/`, semillas `*.json`) |
 | Código fuente | `cuaderno-src/` |
 | ├ Base antigua (pantallas originales, ya compilada) | `cuaderno-src/base/cuaderno-v5.html` |
-| ├ Parches nuevos, uno por función, se aplican en orden | `cuaderno-src/parches/p17.js … p39.js` |
+| ├ Parches nuevos, uno por función, se aplican en orden | `cuaderno-src/parches/p17.js … p40.js` |
 | └ Compilador | `cuaderno-src/build.py` |
 | Pruebas automáticas | `tests/` (ver `tests/README.md`) |
 
@@ -49,3 +49,8 @@ Audios y fotos: blobs en `assets`. Detalle de la sesión en vivo: comentario al 
 - El barrido no está enlazado con la salida en vivo.
 - Los audios se ven (y se descargan) en «Ver detalle» de la salida guardada (p37).
 - Ideas: estadísticas de compañeros por condiciones.
+
+## Regla de oro de los datos
+Lo que pescan los **compañeros** (capturas con `who`) **no cuenta como captura de Jon**: no entra en «mis especies», ni en
+Rendimiento, ni en los contadores de peces. Se sigue viendo en la salida con su nombre. Código: `parches/p40.js`.
+Cualquier estadística personal nueva debe usar `mineOnly(...)` / `mineCatches(...)`.

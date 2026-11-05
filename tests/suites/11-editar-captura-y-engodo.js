@@ -89,7 +89,7 @@ module.exports = {
     });
     await t.case('audios sueltos (de una salida que no guardó su registro) se pueden recuperar', async () => {
       await t.page.evaluate(async () => { const a = await window.claude.use('assets'); const wav = new Uint8Array([0x1A, 0x45, 0xDF, 0xA3, 1, 2, 3, 4, 5, 6, 7, 8]); for (let i = 0; i < 2; i++) await a.upload(new Blob([wav], { type: 'audio/webm' }), { type: 'audio/webm' }); });
-      await t.reload(); await t.goTab('salidas');
+      await t.wait(800); await t.reload(); await t.goTab('salidas');
       t.ok('aparece el aviso de audios sin asignar', (await t.T('.ovblk')).includes('2'));
       await t.page.evaluate(() => { document.querySelector('#ov-trip').value = 'conreg'; });
       await t.tap('[data-a="ov-assign"]', 900);
@@ -112,6 +112,20 @@ module.exports = {
       await t.tap('[data-a="save-trip"]', 1500);
       const ev = (await t.docs('trips')).find(x => x.id === 'casa1').eventos || [];
       t.ok('guardado en la salida', ev.length === 2 && ev.some(e => e.type === 'spot' && e.who === 'k1' && e.name === 'Cala de abajo') && ev.some(e => e.type === 'note'));
+    });
+    await t.case('lo que pescan los compañeros no cuenta como mío', async () => {
+      await t.put('trips', 'comp1', { date: '2026-11-04', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [{ id: 'st1', spotId: 'sp1', spotName: 'Punta del faro' }], equipos: [], companions: [{ id: 'k1', name: 'Mikel' }] });
+      await t.put('catches', 'cc1', { tripId: 'comp1', date: '2026-11-04', siteId: 's1', photos: [], notes: '', items: [
+        { species: 'Boga', key: 'boga', n: 2, size: 'M', st: 'casa', stopId: 'st1' },
+        { species: 'Charro', key: null, n: 1, size: 'M', st: 'lib', stopId: 'st1', who: 'k1' }] });
+      await t.reload(); await t.goTab('salidas');
+      const cuenta = await t.page.evaluate(() => { const c = document.querySelector('.trip[data-id], .trip'); return [...document.querySelectorAll('.fbadge b')].map(x => x.textContent); });
+      t.ok('el contador de peces de la salida solo cuenta los míos', cuenta.includes('2') && !cuenta.includes('3'), cuenta.join(','));
+      await t.goTab('capturas'); await t.tap('[data-a="capview"][data-v="especies"]', 500);
+      await t.page.evaluate(() => { document.querySelector('#sp-q').value = 'charro'; document.querySelector('#sp-q').dispatchEvent(new Event('input', { bubbles: true })); }); await t.wait(400);
+      t.ok('«Charro» (de un compañero) no sale entre mis especies capturadas', !(await t.has('#sp-grid .cromo.got')), await t.T('#sp-grid'));
+      await t.page.evaluate(() => { document.querySelector('#sp-q').value = 'boga'; document.querySelector('#sp-q').dispatchEvent(new Event('input', { bubbles: true })); }); await t.wait(400);
+      t.ok('mi Boga sí cuenta', await t.has('#sp-grid .cromo.got'));
     });
   }
 };
