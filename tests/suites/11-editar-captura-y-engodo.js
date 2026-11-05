@@ -274,5 +274,27 @@ module.exports = {
       t.eq('al terminar vuelve a vista normal', await t.N('.rtghost'), 0);
       t.ok('el lance sigue pintado', (await t.N('.rtcast')) >= 1);
     });
+    await t.case('Equipo de la salida: inicial visual + cada cambio con antes → después, hora y lugar; láminas de especie', async () => {
+      await t.put('speciesPhotos', 'boga', { photo: 'plate-boga' });
+      await t.put('gearInv', 'dec-h3', { kind: 'anzuelo', modelo: 'Caperlan azul', num: '2', createdAt: 1 });
+      await t.put('gearInv', 'dec-h2', { kind: 'anzuelo', modelo: 'Caperlan', num: '4', createdAt: 2 });
+      await t.put('trips', 'eqv1', { date: '2026-09-24', siteId: 's1', siteName: 'Matxitxako', stops: [], companions: [], equipos: [{ id: 'r1', used: [{ id: 'own-yuki-7', kind: 'cana', name: 'Yuki 7 m' }] , corchoFab: 'Casero', anzuelo: 'Caperlan' }],
+        eventos: [{ t: 1000, type: 'start', name: 'Punta del faro', noTime: true },
+          { t: 2000, type: 'eq', noTime: true, names: 'x', why: 'Se movió la gente', cambios: [{ k: 'modo', de: { name: 'Plomín' }, a: { name: 'Corcho' } }] },
+          { t: 3000, type: 'eq', noTime: true, names: 'y', why: 'Roto por una boga', cambios: [{ k: 'anzuelo', de: { id: 'dec-h3', name: 'azul' }, a: { id: 'dec-h2', name: 'nº4' } }] }] });
+      await t.put('catches', 'eqc1', { tripId: 'eqv1', date: '2026-09-24', ts: 5000, items: [{ species: 'Boga', n: 2, st: 'casa' }] });
+      await t.reload(); await t.goTab('salidas');
+      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="eqv1"]'); o && o.click(); }); await t.wait(900);
+      await t.tap('[data-a="trip-tab"][data-v="cap"]', 500);
+      t.ok('la ficha de la especie usa la lámina', await t.page.evaluate(() => !!document.querySelector('.tds img[src*="plate-boga"]')));
+      await t.tap('[data-a="trip-tab"][data-v="eq"]', 600);
+      const x = await t.page.evaluate(() => document.querySelector('.tdbody').textContent);
+      t.ok('equipo inicial con la modalidad Plomín', /Equipo inicial/.test(x) && /Plomín/.test(x));
+      t.eq('un cartel por cada cambio', await t.N('.cbc'), 2);
+      t.eq('antes → después en el cambio de anzuelo', await t.N('.cbc .cba'), 2);
+      t.ok('muestra lugar y motivo', /Punta del faro/.test(x) && /Roto por una boga/.test(x));
+      t.ok('sin hora real dice «hora sin anotar»', /hora sin anotar/.test(x));
+      await t.shot('equipo-cambios');
+    });
   }
 };
