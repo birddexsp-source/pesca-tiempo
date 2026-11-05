@@ -87,5 +87,15 @@ module.exports = {
       t.ok('aparece el registro', await t.has('.lvtl'));
       t.ok('con el cambio de spot y su motivo', (await t.T('.lvtl')).includes('Mucha ola'));
     });
+    await t.case('audios sueltos (de una salida que no guardó su registro) se pueden recuperar', async () => {
+      await t.page.evaluate(async () => { const a = await window.claude.use('assets'); const wav = new Uint8Array([0x1A, 0x45, 0xDF, 0xA3, 1, 2, 3, 4, 5, 6, 7, 8]); for (let i = 0; i < 2; i++) await a.upload(new Blob([wav], { type: 'audio/webm' }), { type: 'audio/webm' }); });
+      await t.reload(); await t.goTab('salidas');
+      t.ok('aparece el aviso de audios sin asignar', (await t.T('.ovblk')).includes('2'));
+      await t.page.evaluate(() => { document.querySelector('#ov-trip').value = 'conreg'; });
+      await t.tap('[data-a="ov-assign"]', 900);
+      const tr = (await t.docs('trips')).find(x => x.id === 'conreg');
+      t.eq('2 notas nuevas en el registro', tr.eventos.filter(e => e.audio).length, 2);
+      t.ok('el aviso desaparece', !(await t.has('.ovblk')));
+    });
   }
 };
