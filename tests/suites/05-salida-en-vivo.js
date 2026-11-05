@@ -69,6 +69,18 @@ module.exports = {
       t.ok('motivo en el equipo B', s.equipos[1].why === 'No picaban'); t.eq('equipo actual = B', s.curEq, s.equipos[1].id);
       t.ok('la consola muestra «Equipo B»', (await t.T('.lvhead')).includes('Equipo B'));
     });
+    await t.case('cambio de bajo: marcar qué cambias, fluoro y anzuelo; queda en el registro', async () => {
+      await t.tap('[data-a="lv-eq"]', 400);
+      t.ok('no hay bloque de bajo hasta marcarlo', !(await t.has('.lvbajo')));
+      await t.tap('[data-a="lv-what"][data-v="bajo"]', 200);
+      t.ok('aparece el bloque Cambio de bajo', await t.has('.lvbajo'));
+      await t.tap('[data-a="lv-bj-f"][data-v="0,20"]', 150);
+      await t.fill('#lv-bj-a', 'nº 4 azul'); await t.tap('[data-a="lv-eq-save"]', 900);
+      const s = await sesion(); const e = s.events.filter(x => x.type === 'eq').pop();
+      t.ok('evento con what=bajo y datos del bajo', e.what && e.what.indexOf('bajo') > -1 && e.bajo && e.bajo.fluoro === '0,20' && e.bajo.anzuelo === 'nº 4 azul', JSON.stringify(e));
+      t.eq('3 equipos', s.equipos.length, 3); t.eq('fluoro en el equipo nuevo', s.equipos[2].fluoro, '0,20');
+      t.ok('la consola sigue abierta', await t.has('#sessbody'));
+    });
     await t.case('la X de una subhoja vuelve a la consola', async () => {
       await t.tap('[data-a="lv-spot"]', 300); await t.tap('[data-a="close-sheet"]', 400); t.ok('consola', await t.has('#sessbody'));
     });
@@ -92,7 +104,7 @@ module.exports = {
       const tr = (await t.docs('trips')).filter(x => x.id !== 'd1');
       t.eq('salida guardada', tr.length, 1);
       t.ok('con el sitio que elegí al empezar (no el que adivina el GPS)', tr[0].siteName === 'Matxitxako');
-      t.ok('con 2 equipos y eventos', tr[0].equipos.length === 2 && tr[0].eventos.length >= 5);
+      t.ok('con 3 equipos y eventos', tr[0].equipos.length === 3 && tr[0].eventos.length >= 5);
       t.ok('con compañeros', (tr[0].companions || []).length === 2);
       t.eq('la sesión se borra', (await t.docs('sesiones')).length, 0); t.ok('la barra desaparece', !(await t.has('#sessbar')));
       const its = [].concat(...(await t.docs('catches')).filter(c => c.tripId === tr[0].id).map(c => c.items));

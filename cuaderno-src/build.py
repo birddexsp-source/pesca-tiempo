@@ -1,9 +1,9 @@
-"""Construye docs/cuaderno/index.html = base/cuaderno-v5.html + parches/p17..p41.js (en orden).
+"""Construye docs/cuaderno/index.html = base/cuaderno-v5.html + parches/p17..p42.js (en orden).
 Uso:  python3 cuaderno-src/build.py      (desde la raíz del repo, o desde cualquier sitio)"""
 import os, re
 AQUI = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(AQUI, '..', 'docs', 'cuaderno', 'index.html')
-PARCHES = ['p%d.js' % n for n in range(17, 42)]   # al añadir uno nuevo: crear pNN.js y subir el 35 aquí
+PARCHES = ['p%d.js' % n for n in range(17, 43)]   # al añadir uno nuevo: crear pNN.js y subir el 35 aquí
 h = open(os.path.join(AQUI, 'base', 'cuaderno-v5.html'), encoding='utf8').read()
 pre = 'src="/_blob/\'+'
 out = []; i = 0
