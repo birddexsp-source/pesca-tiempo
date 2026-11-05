@@ -97,7 +97,7 @@ function rtBody(){
 function rtRepaint(){var b=document.getElementById('sheetbody');if(b)b.innerHTML=rtBody()}
 async function rtSave(){
   var E=RTE;if(!E)return;
-  var sel=document.getElementById('rt-spot');if(sel)E.spotId=sel.value;
+  var sel=document.getElementById('rt-spot');if(sel&&!E.fresh)E.spotId=sel.value;
   var t=trips.filter(function(x){return x.id===E.tid})[0];if(!t)return;
   var ruta=Object.assign({},t.ruta||{}),o={};
   if(E.spotId)o.spotId=E.spotId;if(E.dir)o.dir=E.dir;if(E.sides.length)o.sides=E.sides;

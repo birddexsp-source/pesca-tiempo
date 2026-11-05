@@ -215,5 +215,40 @@ module.exports = {
       t.ok('no desborda en horizontal', (await t.overflow()).length === 0);
       await t.shot('mi-recorrido-editado');
     });
+    await t.case('Equipo del editor sin repeticiones: línea de mi lista + longitud; ruta no se pierde al guardar', async () => {
+      await t.put('trips', 'ed1', { date: '2026-09-22', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [{ id: 'a', spotId: 'sp1', spotName: 'Punta del faro', tFrom: '08:00', tTo: '12:00' }], equipos: [{ id: 'e1' }], companions: [],
+        ruta: { 'e:1000': { dir: 'NE', sides: ['Izquierda'] } },
+        eventos: [{ t: 1000, type: 'start', name: 'Punta del faro' }, { t: 2000, type: 'spot', name: 'Piedra A' }, { t: 3000, type: 'spot', name: 'Piedra B' }] });
+      await t.reload(); await t.goTab('salidas');
+      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="ed1"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="ed1"]'); b && b.click(); }); await t.wait(900);
+      await t.page.evaluate(() => { const g = document.querySelector('.gtop > summary'); g && g.click(); document.querySelectorAll('#gearblk details').forEach(d => d.open = true); }); await t.wait(400);
+      const gk = await t.page.evaluate(() => [...document.querySelectorAll('#gearblk details[data-gk^="e0"]')].map(d => d.dataset.gk));
+      t.ok('quedan Línea y Aparejo; ya no hay Anzuelo ni Caña y carrete sueltos', gk.includes('e0linea') && gk.includes('e0apar') && !gk.includes('e0anz') && !gk.includes('e0cana'), gk.join());
+      t.ok('sin «Mis corchos» repetido', !/Mis corchos/.test(await t.T('details[data-gk="e0apar"]')));
+      t.ok('la línea se elige de mi lista con tiles', (await t.N('details[data-gk="e0linea"] .utile')) > 0);
+      t.ok('longitud del bajo', /longitud del bajo/i.test(await t.T('details[data-gk="e0linea"]')));
+      await t.tap('details[data-gk="e0linea"] .utile', 300); await t.tap('details[data-gk="e0linea"] [data-f="bajo"][data-v="1,5 m"]', 300);
+      await t.tap('[data-a="next-step"]', 500);
+      t.ok('aviso en el paso Spots: el registro tiene 3 paradas', /3 paradas/.test(await t.T('.rtedhint')));
+      for (let i = 0; i < 2; i++) await t.tapIf('[data-a="next-step"]', 450);
+      await t.tapIf('#sheet .btn.primary', 1200); await t.wait(1000);
+      const tr = (await t.docs('trips')).find(x => x.id === 'ed1');
+      t.ok('se guarda la longitud del bajo', tr && tr.equipos && tr.equipos[0] && tr.equipos[0].bajo === '1,5 m', JSON.stringify(tr && tr.equipos));
+      t.ok('la ruta (hacia dónde lanzo) sigue ahí', tr && tr.ruta && tr.ruta['e:1000'] && tr.ruta['e:1000'].dir === 'NE', JSON.stringify(tr && tr.ruta));
+    });
+    await t.case('Mi recorrido: marcar en el mapa una parada sin ubicar y ponerle nombre crea el spot', async () => {
+      await t.page.evaluate(() => { const d = document.querySelector('[data-a="trip-back"]'); d && d.click(); }); await t.wait(300);
+      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="ed1"]'); o && o.click(); }); await t.wait(900);
+      t.ok('avisa de paradas sin ubicar', /sin ubicar/.test(await t.T('.rtcard')));
+      await t.tap('[data-a="rt-edit"][data-k="e:2000"]', 500);
+      await t.fill('#rt-name', 'Piedra 2'); await t.tap('[data-a="rt-mark"]', 1200);
+      t.ok('se abre el selector de punto en el mapa', await t.has('#pkmap'));
+      await t.tap('[data-a="mp-ok"]', 1200);
+      const sp = (await t.docs('spots')).find(x => x.name === 'Piedra 2');
+      t.ok('spot «Piedra 2» creado con coordenadas', !!sp && sp.lat != null && sp.siteId === 's1', JSON.stringify(sp));
+      const tr = (await t.docs('trips')).find(x => x.id === 'ed1');
+      t.ok('la parada queda enlazada al nuevo spot', tr.ruta['e:2000'] && tr.ruta['e:2000'].spotId === (sp && sp.id), JSON.stringify(tr.ruta));
+      await t.wait(600); t.ok('el mapa ya tiene el punto nuevo', (await t.N('.rtpin')) >= 2);
+    });
   }
 };
