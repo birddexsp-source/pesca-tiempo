@@ -80,5 +80,12 @@ module.exports = {
       t.ok('llega a «Guardar salida»', await t.has('[data-a="save-trip"]'));
       await t.tap('[data-a="save-trip"]', 1500); t.ok('se guarda', !(await t.has('#sheet [data-a="save-trip"]')));
     });
+    await t.case('el registro (con audios) se ve en «Ver detalle» de una salida guardada', async () => {
+      await t.put('trips', 'conreg', { date: '2026-11-02', mode: 'Spinning', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], eventos: [{ t: 1762070000000, type: 'start' }, { t: 1762071000000, type: 'spot', name: 'Cala de abajo', why: 'Mucha ola' }] });
+      await t.reload(); await t.goTab('salidas');
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a="toggle-trip"][data-id="conreg"]'); b && b.click(); }); await t.wait(500);
+      t.ok('aparece el registro', await t.has('.lvtl'));
+      t.ok('con el cambio de spot y su motivo', (await t.T('.lvtl')).includes('Mucha ola'));
+    });
   }
 };
