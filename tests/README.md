@@ -33,6 +33,7 @@ Las capturas de lo que falla y los archivos exportados quedan en `tests/out/` (s
 | 08-exportar | JSON, JSON con fotos y CSV |
 | 09-pantallas-moviles | sin desbordes en 360×640 en todas las pantallas |
 | 10-offline-pwa | service worker, precarga de fotos, arranque y datos sin red |
+| 11-editar-captura-y-engodo | tocar una captura del registro para editarla/borrarla, categoría Engodo y marcarlo en la salida |
 
 ## Añadir o editar una prueba
 
