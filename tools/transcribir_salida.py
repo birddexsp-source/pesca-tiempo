@@ -25,8 +25,10 @@ def main():
         for e in todo:
             bp = os.path.join(repo, 'blobs', e['audio'])
             if not os.path.exists(bp): print('falta blob', e['audio']); continue
-            s = r.create_stream(); s.accept_waveform(16000, pcm(bp)); r.decode_stream(s)
-            t = s.result.text.strip()
+            w = pcm(bp); partes = []
+            for k in range(0, len(w), 16000 * 28):   # Whisper solo admite <30 s por trozo
+                s = r.create_stream(); s.accept_waveform(16000, w[k:k + 16000 * 28]); r.decode_stream(s); partes.append(s.result.text.strip())
+            t = ' '.join(x for x in partes if x)
             if t: e['text'] = t; n += 1
         j['u'] = int(time.time() * 1000); json.dump(j, open(f, 'w'), ensure_ascii=False)
         print('actualizada', os.path.basename(f))
