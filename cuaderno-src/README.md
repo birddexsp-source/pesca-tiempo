@@ -12,7 +12,7 @@ Los datos viven en el móvil (IndexedDB) y se sincronizan solos al repo privado 
 | App publicada (lo que ve el móvil) | `docs/cuaderno/` (`index.html`, `sw.js`, `shim.js`, `img/`, semillas `*.json`) |
 | Código fuente | `cuaderno-src/` |
 | ├ Base antigua (pantallas originales, ya compilada) | `cuaderno-src/base/cuaderno-v5.html` |
-| ├ Parches nuevos, uno por función, se aplican en orden | `cuaderno-src/parches/p17.js … p40.js` |
+| ├ Parches nuevos, uno por función, se aplican en orden | `cuaderno-src/parches/p17.js … p41.js` |
 | └ Compilador | `cuaderno-src/build.py` |
 | Pruebas automáticas | `tests/` (ver `tests/README.md`) |
 

@@ -127,5 +127,29 @@ module.exports = {
       await t.page.evaluate(() => { document.querySelector('#sp-q').value = 'boga'; document.querySelector('#sp-q').dispatchEvent(new Event('input', { bubbles: true })); }); await t.wait(400);
       t.ok('mi Boga sí cuenta', await t.has('#sp-grid .cromo.got'));
     });
+    await t.case('registro del 5-nov: reconoce audios por contenido, los ordena y no duplica', async () => {
+      await t.put('trips', 'dia5', { date: '2026-11-05', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], companions: [{ id: 'k1', name: 'Maik' }], eventos: [{ t: 5, type: 'note', audio: 'x-viejo-dup', noTime: true }] });
+      const hs = await t.page.evaluate(async () => {
+        const a = await window.claude.use('assets'), mk = async (bytes) => { const bl = new Blob([new Uint8Array(bytes)], { type: 'audio/webm' }); const { id } = await a.upload(bl, { type: 'audio/webm' }); const d = await crypto.subtle.digest('SHA-256', await bl.arrayBuffer()); return Array.from(new Uint8Array(d)).map(x => ('0' + x.toString(16)).slice(-2)).join(''); };
+        const h1 = await mk([0x1A, 0x45, 0xDF, 0xA3, 9, 9, 9]), h2 = await mk([0x1A, 0x45, 0xDF, 0xA3, 8, 8, 8]), h3 = await mk([0x1A, 0x45, 0xDF, 0xA3, 9, 9, 9]);   // h3 = copia de h1
+        window.__RGTEST = { [h1]: 'eq1', [h2]: 'tragado' }; return [h1, h2, h3];
+      });
+      await t.wait(800);
+      const r = await t.page.evaluate(() => window.__rgRun(true, 'dia5'));
+      t.ok('aplicado a la salida del día', r && r.trip === 'dia5' && r.audios === 2, JSON.stringify(r));
+      const ev = (await t.docs('trips')).find(x => x.id === 'dia5').eventos;
+      t.ok('16 hechos del día + el evento ajeno', ev.length === 17 && ev.some(e => e.audio === 'x-viejo-dup'), String(ev.length));
+      t.eq('empieza en la Piedra 1', ev[0].name, 'Piedra 1');
+      t.ok('orden: cambio de equipo antes del cambio a Piedra 2', ev.findIndex(e => e.type === 'eq') < ev.findIndex(e => e.name === 'Piedra 2'));
+      t.ok('Maik llega a la Piedra 3 con su id', ev.some(e => e.type === 'spot' && e.who === 'k1' && e.name === 'Piedra 3'));
+      t.eq('un solo evento con el audio duplicado', ev.filter(e => e.audio && e.type === 'eq' && e.names === 'Plomín → corcho').length, 1);
+      t.eq('los demás no llevan audio inventado', ev.filter(e => e.audio && e.audio !== 'x-viejo-dup').length, 2);
+      await t.page.evaluate(() => { delete window.__RGTEST; });
+      await t.reload(); await t.goTab('salidas');
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a="toggle-trip"][data-id="dia5"]'); b && b.click(); }); await t.wait(500);
+      const reg = await t.T('.lvtl'); t.ok('se ve en Ver detalle con título y detalle', reg.includes('Piedra 1') && reg.includes('dos lados de lanzado') && reg.includes('Plomín'), reg.slice(0, 120));
+      let g = (await t.docs('gearInv')).find(x => x.id === 'anz-peq-plateado'); for (let i = 0; i < 12 && !g; i++) { await t.wait(500); g = (await t.docs('gearInv')).find(x => x.id === 'anz-peq-plateado'); }
+      t.ok('anzuelo pequeño plateado en Mi equipo', !!g);
+    });
   }
 };
