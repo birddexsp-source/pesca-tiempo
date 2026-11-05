@@ -1,4 +1,12 @@
 /* Editar capturas desde el registro de la salida y categoría Engodo. */
+/* abre una salida con reintentos (la lista puede recargarse justo después de un reload) */
+async function abrirSalida(t, id) {
+  for (let k = 0; k < 8; k++) {
+    if (await t.has('.tdv')) return;
+    if (await t.has('[data-a="trip-open"][data-id="' + id + '"]')) await t.page.evaluate((i) => { const o = document.querySelector('[data-a="trip-open"][data-id="' + i + '"]'); o && o.click(); }, id);
+    await t.wait(1000);
+  }
+}
 module.exports = {
   name: 'Editar capturas y Engodo',
   async run(t) {
@@ -75,7 +83,7 @@ module.exports = {
     await t.case('«Siguiente» no se queda mudo aunque un dato venga roto', async () => {
       await t.put('trips', 'roto', { date: '2026-11-01', mode: 'Spinning', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], eventos: [null, { t: 1, type: 'spot', name: 'X' }] });
       await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="roto"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="roto"]'); b && b.click(); }); await t.wait(700);
+      await abrirSalida(t, 'roto'); await t.page.evaluate(() => { const b = document.querySelector('[data-a="edit-trip"][data-id="roto"]'); b && b.click(); }); await t.wait(700);
       for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 500);
       t.ok('llega a «Guardar salida»', await t.has('[data-a="save-trip"]'));
       await t.tap('[data-a="save-trip"]', 1500); t.ok('se guarda', !(await t.has('#sheet [data-a="save-trip"]')));
@@ -101,7 +109,7 @@ module.exports = {
     await t.case('añadir a mano al registro: «Mikel se movió a Cala de abajo, en el charco»', async () => {
       await t.put('trips', 'casa1', { date: '2026-11-03', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], companions: [{ id: 'k1', name: 'Mikel' }] });
       await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="casa1"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="casa1"]'); b && b.click(); }); await t.wait(700);
+      await abrirSalida(t, 'casa1'); await t.page.evaluate(() => { const b = document.querySelector('[data-a="edit-trip"][data-id="casa1"]'); b && b.click(); }); await t.wait(700);
       for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 450);
       t.ok('botón para añadir al registro', await t.has('[data-a="rx-open"]'));
       await t.tap('[data-a="rx-open"]', 300); await t.tap('[data-a="rx-who"][data-id="k1"]', 300);
@@ -220,7 +228,7 @@ module.exports = {
         ruta: { 'e:1000': { dir: 'NE', sides: ['Izquierda'] } },
         eventos: [{ t: 1000, type: 'start', name: 'Punta del faro' }, { t: 2000, type: 'spot', name: 'Piedra A' }, { t: 3000, type: 'spot', name: 'Piedra B' }] });
       await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="ed1"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="ed1"]'); b && b.click(); }); await t.wait(900);
+      await abrirSalida(t, 'ed1'); await t.page.evaluate(() => { const b = document.querySelector('[data-a="edit-trip"][data-id="ed1"]'); b && b.click(); }); await t.wait(900);
       await t.page.evaluate(() => { const g = document.querySelector('.gtop > summary'); g && g.click(); document.querySelectorAll('#gearblk details').forEach(d => d.open = true); }); await t.wait(400);
       const gk = await t.page.evaluate(() => [...document.querySelectorAll('#gearblk details[data-gk^="e0"]')].map(d => d.dataset.gk));
       t.ok('quedan Línea y Aparejo; ya no hay Anzuelo ni Caña y carrete sueltos', gk.includes('e0linea') && gk.includes('e0apar') && !gk.includes('e0anz') && !gk.includes('e0cana'), gk.join());
@@ -238,7 +246,7 @@ module.exports = {
     });
     await t.case('Mi recorrido: marcar en el mapa una parada sin ubicar y ponerle nombre crea el spot', async () => {
       await t.page.evaluate(() => { const d = document.querySelector('[data-a="trip-back"]'); d && d.click(); }); await t.wait(300);
-      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="ed1"]'); o && o.click(); }); await t.wait(900);
+      await abrirSalida(t, 'ed1'); await t.wait(500);
       t.ok('avisa de paradas sin ubicar', /sin ubicar/.test(await t.T('.rtcard')));
       await t.tap('[data-a="rt-edit"][data-k="e:2000"]', 500);
       await t.fill('#rt-name', 'Piedra 2'); await t.tap('[data-a="rt-mark"]', 1200);
@@ -252,8 +260,9 @@ module.exports = {
     });
     await t.case('Mapa: pintar con el dedo/ratón la zona donde lanzas; al tocar un spot se ve su zona', async () => {
       await t.put('trips', 'cs1', { date: '2026-09-23', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], companions: [], eventos: [{ t: 1000, type: 'start', name: 'Punta del faro' }, { t: 2000, type: 'spot', name: 'Cala de abajo' }] });
-      await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="cs1"]'); o && o.click(); }); await t.wait(1000);
+      await t.wait(900); await t.reload(); await t.wait(1500); await t.goTab('salidas');
+      await abrirSalida(t, 'cs1');
+      for (let k = 0; k < 20 && !(await t.has('[data-a="rt-castmode"]')); k++) await t.wait(500);
       t.ok('botón «Pintar dónde lanzo»', /Pintar dónde lanzo/.test(await t.T('.rtbar')));
       await t.tap('[data-a="rt-castmode"]', 900);
       t.ok('explica los pasos', /Dibuja con el dedo/.test(await t.T('.rtbar')));
@@ -287,10 +296,16 @@ module.exports = {
           { t: 2000, type: 'eq', noTime: true, names: 'x', why: 'Se movió la gente', cambios: [{ k: 'modo', de: { name: 'Plomín' }, a: { name: 'Corcho' } }] },
           { t: 3000, type: 'eq', noTime: true, names: 'y', why: 'Roto por una boga', cambios: [{ k: 'anzuelo', de: { id: 'dec-h3', name: 'azul' }, a: { id: 'dec-h2', name: 'nº4' } }] }] });
       await t.put('catches', 'eqc1', { tripId: 'eqv1', date: '2026-09-24', ts: 5000, items: [{ species: 'Boga', n: 2, st: 'casa' }] });
-      await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="eqv1"]'); o && o.click(); }); await t.wait(900);
+      await t.wait(900); await t.reload(); await t.wait(1500); await t.goTab('salidas');
+      await abrirSalida(t, 'eqv1');
+      for (let k = 0; k < 15 && !(await t.has('[data-a="trip-tab"][data-v="cap"]')); k++) await t.wait(500);
       await t.tap('[data-a="trip-tab"][data-v="cap"]', 500);
       t.ok('la ficha de la especie usa la lámina', await t.page.evaluate(() => !!document.querySelector('.tds img[src*="plate-boga"]')));
+      t.ok('la pestaña cuenta peces (2), no anotaciones', /Capturas\s*2/.test(await t.T('.tdtabs')));
+      await t.tap('[data-a="cap-sp"]', 700);
+      const dt = await t.page.evaluate(() => document.getElementById('sheetbody').textContent);
+      t.ok('al tocar la especie: total y destino', /2/.test(dt) && /Destino/i.test(dt), dt);
+      await t.shot('detalle-especie'); await t.tap('[data-a="close-sheet"]', 400);
       await t.tap('[data-a="trip-tab"][data-v="eq"]', 600);
       const x = await t.page.evaluate(() => document.querySelector('.tdbody').textContent);
       t.ok('equipo inicial con la modalidad Plomín', /Equipo inicial/.test(x) && /Plomín/.test(x));
