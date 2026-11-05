@@ -191,5 +191,29 @@ module.exports = {
       await t.tap('[data-a="trip-back"]', 400); t.ok('volver a la lista', (await t.has('.tcc')) && !(await t.has('.tdtabs')));
       await t.page.evaluate(() => { const c = document.querySelector('.tcc'); c && c.scrollIntoView(); }); await t.wait(300); await t.shot('salidas-lista');
     });
+    await t.case('Mi recorrido: mapa con flechas entre spots, hacia dónde lanzas y es editable', async () => {
+      await t.put('trips', 'rt1', { date: '2026-09-21', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], companions: [{ id: 'k1', name: 'Mikel' }], eventos: [
+        { t: 1000, type: 'start', name: 'Punta del faro' }, { t: 2000, type: 'spot', name: 'Cala de abajo' },
+        { t: 3000, type: 'spot', name: 'Cala de abajo' }, { t: 4000, type: 'spot', name: 'Piedra 9' }, { t: 5000, type: 'spot', name: 'Cala bonita', who: 'k1' }] });
+      await t.reload(); await t.goTab('salidas');
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a="trip-open"][data-id="rt1"]'); b && b.click(); }); await t.wait(900);
+      t.ok('hay mapa del recorrido', await t.has('#rtmap'));
+      t.eq('3 paradas (la repetida se une y lo de Mikel no cuenta)', await t.N('.rtn'), 3);
+      await t.wait(600);
+      t.eq('2 puntos en el mapa (la 3ª no tiene spot)', await t.N('.rtpin'), 2);
+      t.ok('flecha entre A y B', (await t.page.evaluate(() => document.querySelectorAll('#rtmap svg path').length)) >= 2);
+      await t.shot('mi-recorrido');
+      await t.tap('[data-a="rt-edit"][data-k="e:4000"]', 500);
+      await t.page.evaluate(() => { const s = document.querySelector('#rt-spot'); s.value = 'sp3'; });
+      await t.tap('[data-a="rt-dir"][data-v="NE"]', 200); await t.tap('[data-a="rt-side"][data-v="Izquierda"]', 150); await t.tap('[data-a="rt-side"][data-v="Derecha"]', 150);
+      await t.tap('[data-a="rt-save"]', 900);
+      const r = ((await t.docs('trips')).find(x => x.id === 'rt1') || {}).ruta || {};
+      t.ok('se guarda el spot, la dirección y los lados', r['e:4000'] && r['e:4000'].spotId === 'sp3' && r['e:4000'].dir === 'NE' && r['e:4000'].sides.join() === 'Izquierda,Derecha', JSON.stringify(r));
+      await t.wait(700);
+      t.eq('ahora 3 puntos en el mapa', await t.N('.rtpin'), 3);
+      t.ok('la parada muestra NE y los lados', /NE/.test(await t.T('.rtstrip')) && /Izquierda → Derecha/.test(await t.T('.rtstrip')));
+      t.ok('no desborda en horizontal', (await t.overflow()).length === 0);
+      await t.shot('mi-recorrido-editado');
+    });
   }
 };
