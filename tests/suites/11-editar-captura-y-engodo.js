@@ -250,29 +250,33 @@ module.exports = {
       t.ok('la parada queda enlazada al nuevo spot', tr.ruta['e:2000'] && tr.ruta['e:2000'].spotId === (sp && sp.id), JSON.stringify(tr.ruta));
       await t.wait(600); t.ok('el mapa ya tiene el punto nuevo', (await t.N('.rtpin')) >= 2);
     });
-    await t.case('Mapa: marcar dónde lanzas arrastrando el 🎣 desde el spot', async () => {
+    await t.case('Mapa: pintar con el dedo/ratón la zona donde lanzas; al tocar un spot se ve su zona', async () => {
       await t.put('trips', 'cs1', { date: '2026-09-23', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], companions: [], eventos: [{ t: 1000, type: 'start', name: 'Punta del faro' }, { t: 2000, type: 'spot', name: 'Cala de abajo' }] });
       await t.reload(); await t.goTab('salidas');
       await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="cs1"]'); o && o.click(); }); await t.wait(1000);
-      t.ok('botón «Marcar dónde lanzo»', /Marcar dónde lanzo/.test(await t.T('.rtbar')));
-      t.eq('sin modo edición no hay «+»', await t.N('.rtghost'), 0);
+      t.ok('botón «Pintar dónde lanzo»', /Pintar dónde lanzo/.test(await t.T('.rtbar')));
       await t.tap('[data-a="rt-castmode"]', 900);
-      t.eq('modo edición: un «+» por spot', await t.N('.rtghost'), 2);
-      await t.page.evaluate(() => { document.querySelector('.rtghost').click(); }); await t.wait(1200);
+      t.ok('explica los pasos', /Dibuja con el dedo/.test(await t.T('.rtbar')));
+      const bx = await t.page.evaluate(() => { const r = document.getElementById('rtmap').getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+      await t.page.evaluate(() => document.getElementById('rtmap').scrollIntoView({ block: 'center' })); await t.wait(300);
+      const bb = await t.page.evaluate(() => { const r = document.getElementById('rtmap').getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+      const cx = bb.x + bb.w * .5, cy = bb.y + bb.h * .5;
+      await t.page.mouse.move(cx - 60, cy - 40); await t.page.mouse.down();
+      for (let k = 0; k <= 24; k++) { const a = k / 24 * 2 * Math.PI; await t.page.mouse.move(cx + Math.cos(a) * 60, cy + Math.sin(a) * 40); }
+      await t.page.mouse.up(); await t.wait(1500);
       let r = ((await t.docs('trips')).find(x => x.id === 'cs1') || {}).ruta || {};
-      t.ok('al tocar «+» se crea un lance en el spot', r['e:1000'] && r['e:1000'].casts && r['e:1000'].casts.length === 1, JSON.stringify(r));
-      t.ok('el 🎣 es arrastrable', (await t.N('.rtcast.ed')) === 1);
-      const before = r['e:1000'].casts[0];
-      t.ok('el marcador tiene el arrastre activado', await t.page.evaluate(() => { let ok = false; __RTG().eachLayer(l => { if (l.dragging && l.dragging.enabled()) ok = true; }); return ok; }));
-      await t.page.evaluate(() => { __RTG().eachLayer(l => { if (l.dragging && l.dragging.enabled() && l.getIcon && /rtcast/.test(l.getIcon().options.html || '')) { const p = l.getLatLng(); l.setLatLng([p.lat + 0.0004, p.lng + 0.0003]); l.fire('dragend'); } }); }); await t.wait(1200);
+      const key = Object.keys(r).find(k => r[k].areas);
+      t.ok('se guarda una zona con varios puntos', key && r[key].areas.length === 1 && r[key].areas[0].length >= 8, JSON.stringify(r).slice(0, 200));
+      t.ok('la zona pintada se ve en el mapa', (await t.N('path.rtarea')) >= 1);
+      await t.shot('zona-pintada');
+      await t.tap('[data-a="rt-castmode"]', 900);
+      t.ok('la tira marca «zona»', /zona/.test(await t.T('.rtstrip')));
+      await t.page.evaluate(() => { document.querySelector('.rtpin').click(); }); await t.wait(500);
+      t.ok('al tocar el spot aparece su zona', (await t.N('path.rtarea')) >= 1);
+      await t.tap('[data-a="rt-castmode"]', 900);
+      await t.tap('[data-a="rt-clear"]', 1200);
       r = ((await t.docs('trips')).find(x => x.id === 'cs1') || {}).ruta || {};
-      const after = r['e:1000'] && r['e:1000'].casts && r['e:1000'].casts[0];
-      t.ok('arrastrar guarda el punto exacto', after && (Math.abs(after.lat - before.lat) > 1e-7 || Math.abs(after.lon - before.lon) > 1e-7), JSON.stringify([before, after]));
-      t.ok('la tira muestra el lance', /lance/.test(await t.T('.rtstrip')));
-      await t.shot('lance-en-mapa');
-      await t.tap('[data-a="rt-castmode"]', 700);
-      t.eq('al terminar vuelve a vista normal', await t.N('.rtghost'), 0);
-      t.ok('el lance sigue pintado', (await t.N('.rtcast')) >= 1);
+      t.ok('«Borrar zonas» la quita', !Object.keys(r).some(k => r[k].areas), JSON.stringify(r).slice(0, 200));
     });
     await t.case('Equipo de la salida: inicial visual + cada cambio con antes → después, hora y lugar; láminas de especie', async () => {
       await t.put('speciesPhotos', 'boga', { photo: 'plate-boga' });
