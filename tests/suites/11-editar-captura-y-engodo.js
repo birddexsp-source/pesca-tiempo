@@ -75,7 +75,7 @@ module.exports = {
     await t.case('«Siguiente» no se queda mudo aunque un dato venga roto', async () => {
       await t.put('trips', 'roto', { date: '2026-11-01', mode: 'Spinning', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], eventos: [null, { t: 1, type: 'spot', name: 'X' }] });
       await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const b = document.querySelector('[data-a="edit-trip"][data-id="roto"]'); b && b.click(); }); await t.wait(700);
+      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="roto"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="roto"]'); b && b.click(); }); await t.wait(700);
       for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 500);
       t.ok('llega a «Guardar salida»', await t.has('[data-a="save-trip"]'));
       await t.tap('[data-a="save-trip"]', 1500); t.ok('se guarda', !(await t.has('#sheet [data-a="save-trip"]')));
@@ -83,7 +83,7 @@ module.exports = {
     await t.case('el registro (con audios) se ve en «Ver detalle» de una salida guardada', async () => {
       await t.put('trips', 'conreg', { date: '2026-11-02', mode: 'Spinning', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], eventos: [{ t: 1762070000000, type: 'start' }, { t: 1762071000000, type: 'spot', name: 'Cala de abajo', why: 'Mucha ola' }] });
       await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const b = document.querySelector('[data-a="toggle-trip"][data-id="conreg"]'); b && b.click(); }); await t.wait(500);
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a=\"trip-open\"][data-id=\"conreg\"]'); b && b.click(); }); await t.wait(300); await t.tap('[data-a=\"trip-tab\"][data-v=\"reg\"]', 400);
       t.ok('aparece el registro', await t.has('.lvtl'));
       t.ok('con el cambio de spot y su motivo', (await t.T('.lvtl')).includes('Mucha ola'));
     });
@@ -100,7 +100,7 @@ module.exports = {
     await t.case('añadir a mano al registro: «Mikel se movió a Cala de abajo, en el charco»', async () => {
       await t.put('trips', 'casa1', { date: '2026-11-03', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], companions: [{ id: 'k1', name: 'Mikel' }] });
       await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const b = document.querySelector('[data-a="edit-trip"][data-id="casa1"]'); b && b.click(); }); await t.wait(700);
+      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="casa1"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="casa1"]'); b && b.click(); }); await t.wait(700);
       for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 450);
       t.ok('botón para añadir al registro', await t.has('[data-a="rx-open"]'));
       await t.tap('[data-a="rx-open"]', 300); await t.tap('[data-a="rx-who"][data-id="k1"]', 300);
@@ -146,7 +146,7 @@ module.exports = {
       t.eq('los demás no llevan audio inventado', ev.filter(e => e.audio && e.audio !== 'x-viejo-dup').length, 2);
       await t.page.evaluate(() => { delete window.__RGTEST; });
       await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const b = document.querySelector('[data-a="toggle-trip"][data-id="dia5"]'); b && b.click(); }); await t.wait(500);
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a=\"trip-open\"][data-id=\"dia5\"]'); b && b.click(); }); await t.wait(300); await t.tap('[data-a=\"trip-tab\"][data-v=\"reg\"]', 400);
       const reg = await t.T('.lvtl'); t.ok('se ve en Ver detalle con título y detalle', reg.includes('Piedra 1') && reg.includes('dos lados de lanzado') && reg.includes('Plomín'), reg.slice(0, 120));
       let g = (await t.docs('gearInv')).find(x => x.id === 'anz-peq-plateado'); for (let i = 0; i < 12 && !g; i++) { await t.wait(500); g = (await t.docs('gearInv')).find(x => x.id === 'anz-peq-plateado'); }
       t.ok('anzuelo pequeño plateado en Mi equipo', !!g);
@@ -156,7 +156,7 @@ module.exports = {
         { t: 1000, type: 'eq', eq: 'e1', names: 'Bajo: 0,20 mm · nº 4', what: ['bajo'], bajo: { fluoro: '0,20', anzuelo: 'nº 4' }, text: 'cambio el bajo al veinte' },
         { t: 2000, type: 'eq', eq: 'e1', names: 'Corcho', what: ['anzuelo', 'corcho'] }] });
       await t.reload(); await t.goTab('salidas');
-      await t.page.evaluate(() => { const b = document.querySelector('[data-a="toggle-trip"][data-id="bj1"]'); b && b.click(); }); await t.wait(500);
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a=\"trip-open\"][data-id=\"bj1\"]'); b && b.click(); }); await t.wait(300); await t.tap('[data-a=\"trip-tab\"][data-v=\"reg\"]', 400);
       const reg = await t.T('.lvtl');
       t.ok('título «Cambio de bajo»', reg.includes('Cambio de bajo'), reg.slice(0, 200));
       t.ok('título «Cambio de anzuelo y corcho»', reg.includes('Cambio de anzuelo y corcho'), reg.slice(0, 300));
@@ -169,6 +169,24 @@ module.exports = {
       t.ok('categoría «Bajos montados»', /Bajos montados/.test(await t.T('main')));
       await t.tap('[data-a="eqp-cat"][data-k="bajo"]', 500);
       t.ok('el bajo aparece con su nombre', (await t.T('#eqpane')).includes('Bajo 0,20 anzuelo 4'), (await t.T('#eqpane')).slice(0, 200));
+    });
+    await t.case('Salidas: tarjeta compacta; al tocar se abre el detalle con pestañas horizontales', async () => {
+      await t.put('trips', 'vis1', { date: '2026-09-20', mode: 'Corcho', siteId: 's1', siteName: 'Bakio', stops: [], equipos: [], companions: [], eventos: [{ t: 1, type: 'note', title: 'Hola', noTime: true }] });
+      for (let k = 0; k < 6; k++) await t.put('catches', 'vc' + k, { date: '2026-09-20', time: '10:0' + k, ts: 100 + k, tripId: 'vis1', items: [{ species: k < 4 ? 'Oblada' : 'Sargo', key: null, n: 2, size: 'M', st: 'lib' }] });
+      await t.reload(); await t.goTab('salidas');
+      t.ok('la tarjeta no lista cada captura', !(await t.has('.tcc .fcs, .tcc .qcrow')));
+      t.ok('contador de peces en la tarjeta', (await t.page.evaluate(() => [...document.querySelectorAll('.fbadge b')].map(x => x.textContent))).includes('12'));
+      await t.page.evaluate(() => { const b = [...document.querySelectorAll('[data-a="trip-open"]')].find(x => x.getAttribute('data-id') === 'vis1'); b && b.click(); }); await t.wait(400);
+      t.ok('barra de pestañas', await t.has('.tdtabs'));
+      const tabs = await t.T('.tdtabs'); t.ok('pestañas Resumen/Capturas/Registro', /Resumen/.test(tabs) && /Capturas/.test(tabs) && /Registro/.test(tabs), tabs);
+      t.ok('no desborda en horizontal', (await t.overflow()).length === 0);
+      await t.tap('[data-a="trip-tab"][data-v="cap"]', 400);
+      t.eq('tarjetas por especie', await t.page.evaluate(() => document.querySelectorAll('.tds').length), 2);
+      t.eq('todas las capturas en el detalle', await t.page.evaluate(() => document.querySelectorAll('.tdbody .qcrow').length), 6);
+      await t.shot('salida-capturas');
+      await t.tap('[data-a="trip-tab"][data-v="reg"]', 400); t.ok('registro', await t.has('.lvtl'));
+      await t.tap('[data-a="trip-back"]', 400); t.ok('volver a la lista', (await t.has('.tcc')) && !(await t.has('.tdtabs')));
+      await t.page.evaluate(() => { const c = document.querySelector('.tcc'); c && c.scrollIntoView(); }); await t.wait(300); await t.shot('salidas-lista');
     });
   }
 };

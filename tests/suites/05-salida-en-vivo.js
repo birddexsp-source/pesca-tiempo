@@ -111,7 +111,7 @@ module.exports = {
       t.ok('las capturas pasaron a la salida', its.length >= 2);
       t.eq('ya no quedan capturas «por ordenar»', (await t.docs('catches')).filter(c => c.quick).length, 0);
       await t.reload();
-      await t.page.evaluate(id => { const b = document.querySelector('[data-a="edit-trip"][data-id="' + id + '"]'); b && b.click(); }, tr[0].id); await t.wait(700);
+      await t.page.evaluate(id => { const o = document.querySelector('[data-a="trip-open"][data-id="' + id + '"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="' + id + '"]'); b && b.click(); }, tr[0].id); await t.wait(700);
       t.ok('se puede abrir para completar en casa', await t.has('#sheet [data-a="next-step"]'));
       for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 450);
       t.ok('registro de la salida en el resumen', await t.has('.lvtl'));

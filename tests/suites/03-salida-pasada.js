@@ -33,7 +33,7 @@ module.exports = {
     await t.case('editar una salida mantiene el equipo', async () => {
       const tr = (await t.docs('trips')).find(x => x.siteName === 'Playa de prueba');
       if (!tr) throw new Error('la salida de prueba no existe');
-      await t.page.evaluate(id => { const b = document.querySelector('[data-a="edit-trip"][data-id="' + id + '"]'); b && b.click(); }, tr.id); await t.wait(600);
+      await t.page.evaluate(id => { const o = document.querySelector('[data-a="trip-open"][data-id="' + id + '"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="' + id + '"]'); b && b.click(); }, tr.id); await t.wait(600);
       for (let k = 0; k < 6; k++) { if (await t.page.evaluate(() => document.querySelector('#sheet').hidden)) break; await t.page.evaluate(() => { const b = document.querySelector('#stpf .btn.primary'); b && b.click(); }); await t.wait(500); }
       const t2 = (await t.docs('trips')).find(x => x.id === tr.id);
       t.ok('equipo intacto tras re-guardar', t2.equipos && t2.equipos[0] && (t2.equipos[0].used || []).length === (tr.equipos[0].used || []).length);

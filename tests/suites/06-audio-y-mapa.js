@@ -49,7 +49,7 @@ module.exports = {
       t.eq('2 audios en el registro', await t.N('#sessbody audio'), 2);
       await t.tap('[data-a="sess-finish"]', 200); await t.tap('[data-a="sess-finish"]', 2500);
       const tid = (await t.docs('trips')).filter(x => x.id !== 'd1')[0].id;
-      await t.page.evaluate(id => { const b = document.querySelector('[data-a="edit-trip"][data-id="' + id + '"]'); b && b.click(); }, tid); await t.wait(700);
+      await t.page.evaluate(id => { const o = document.querySelector('[data-a="trip-open"][data-id="' + id + '"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="' + id + '"]'); b && b.click(); }, tid); await t.wait(700);
       for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 450);
       t.eq('2 enlaces de descarga', await t.N('.dlbtn'), 2);
       const names = await t.page.evaluate(() => [...document.querySelectorAll('.dlbtn')].map(a => a.getAttribute('download')));
