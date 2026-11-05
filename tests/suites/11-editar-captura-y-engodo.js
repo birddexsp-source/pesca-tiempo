@@ -91,6 +91,7 @@ module.exports = {
       await t.page.evaluate(async () => { const a = await window.claude.use('assets'); const wav = new Uint8Array([0x1A, 0x45, 0xDF, 0xA3, 1, 2, 3, 4, 5, 6, 7, 8]); for (let i = 0; i < 2; i++) await a.upload(new Blob([wav], { type: 'audio/webm' }), { type: 'audio/webm' }); });
       await t.wait(800); await t.reload(); await t.goTab('salidas');
       t.ok('aparece el aviso de audios sin asignar', (await t.T('.ovblk')).includes('2'));
+      t.ok('sin botón de descargar en los audios sueltos', !(await t.has('.ovblk .dlbtn')) && !/descárgalos/.test(await t.T('.ovblk')));
       await t.page.evaluate(() => { document.querySelector('#ov-trip').value = 'conreg'; });
       await t.tap('[data-a="ov-assign"]', 900);
       const tr = (await t.docs('trips')).find(x => x.id === 'conreg');
@@ -158,9 +159,11 @@ module.exports = {
       await t.reload(); await t.goTab('salidas');
       await t.page.evaluate(() => { const b = document.querySelector('[data-a=\"trip-open\"][data-id=\"bj1\"]'); b && b.click(); }); await t.wait(300); await t.tap('[data-a=\"trip-tab\"][data-v=\"reg\"]', 400);
       const reg = await t.T('.lvtl');
+      await t.page.evaluate(() => { const d = document.querySelector('.trxd'); d && (d.open = true); const l = document.querySelector('.lvtl'); l && l.scrollIntoView(); }); await t.wait(300); await t.shot('registro-notas');
       t.ok('título «Cambio de bajo»', reg.includes('Cambio de bajo'), reg.slice(0, 200));
       t.ok('título «Cambio de anzuelo y corcho»', reg.includes('Cambio de anzuelo y corcho'), reg.slice(0, 300));
-      t.ok('transcripción bajo el hecho', reg.includes('cambio el bajo al veinte'));
+      t.ok('transcripción bajo el hecho', (await t.page.evaluate(() => (document.querySelector('.trxd p') || {}).textContent || '')).includes('cambio el bajo al veinte'));
+      t.ok('la transcripción va en un desplegable «Ver texto»', (await t.N('.trxd summary')) === 1 && /Ver texto/.test(reg));
     });
     await t.case('Bajos montados en Mi equipo', async () => {
       await t.put('gearInv', 'bajo-020', { kind: 'bajo', name: 'Bajo 0,20 anzuelo 4', fluoro: '0,20', anzuelo: 'nº 4 azul', largo: '120', createdAt: 1 });

@@ -43,7 +43,7 @@ module.exports = {
       t.eq('1 audio tras recargar', await t.N('#sessbody audio'), 1);
       t.ok('con fuente válida', await t.page.evaluate(() => document.querySelector('#sessbody audio').src.startsWith('blob:')));
     });
-    await t.case('cambio de equipo con audio y descarga en el resumen', async () => {
+    await t.case('cambio de equipo con audio; en el resumen se oye y no hay descargas', async () => {
       await t.tap('[data-a="lv-eq"]', 400); await t.tap('[data-a="lv-why"][data-v="Rotura"]', 150);
       await t.tap('[data-a="lv-rec"]', 1300); await t.tap('[data-a="lv-rec"]', 800); await t.tap('[data-a="lv-eq-save"]', 1500);
       t.eq('2 audios en el registro', await t.N('#sessbody audio'), 2);
@@ -51,10 +51,9 @@ module.exports = {
       const tid = (await t.docs('trips')).filter(x => x.id !== 'd1')[0].id;
       await t.page.evaluate(id => { const o = document.querySelector('[data-a="trip-open"][data-id="' + id + '"]'); o && o.click(); const b = document.querySelector('[data-a="edit-trip"][data-id="' + id + '"]'); b && b.click(); }, tid); await t.wait(700);
       for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 450);
-      t.eq('2 enlaces de descarga', await t.N('.dlbtn'), 2);
-      const names = await t.page.evaluate(() => [...document.querySelectorAll('.dlbtn')].map(a => a.getAttribute('download')));
-      t.ok('con nombre de archivo de audio', names.every(n => /\.(webm|ogg|m4a)$/.test(n)), names.join(','));
-      t.ok('etiquetas distintas', new Set(await t.page.evaluate(() => [...document.querySelectorAll('.dlbtn')].map(a => a.textContent))).size === 2);
+      t.eq('sin enlaces de descarga', await t.N('.dlbtn'), 0);
+      t.eq('los 2 audios se pueden oír en el resumen', await t.N('.lvtl audio'), 2);
+      t.ok('sin la frase de «descárgalo y mándamelo»', !/descárgalo/.test(await t.T('.lvtl')));
     });
   }
 };
