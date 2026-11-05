@@ -151,5 +151,24 @@ module.exports = {
       let g = (await t.docs('gearInv')).find(x => x.id === 'anz-peq-plateado'); for (let i = 0; i < 12 && !g; i++) { await t.wait(500); g = (await t.docs('gearInv')).find(x => x.id === 'anz-peq-plateado'); }
       t.ok('anzuelo pequeño plateado en Mi equipo', !!g);
     });
+    await t.case('transcripción visible en el registro y «Cambio de bajo» con etiqueta', async () => {
+      await t.put('trips', 'bj1', { date: '2026-10-01', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [{ id: 'e1', used: [] }], companions: [], eventos: [
+        { t: 1000, type: 'eq', eq: 'e1', names: 'Bajo: 0,20 mm · nº 4', what: ['bajo'], bajo: { fluoro: '0,20', anzuelo: 'nº 4' }, text: 'cambio el bajo al veinte' },
+        { t: 2000, type: 'eq', eq: 'e1', names: 'Corcho', what: ['anzuelo', 'corcho'] }] });
+      await t.reload(); await t.goTab('salidas');
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a="toggle-trip"][data-id="bj1"]'); b && b.click(); }); await t.wait(500);
+      const reg = await t.T('.lvtl');
+      t.ok('título «Cambio de bajo»', reg.includes('Cambio de bajo'), reg.slice(0, 200));
+      t.ok('título «Cambio de anzuelo y corcho»', reg.includes('Cambio de anzuelo y corcho'), reg.slice(0, 300));
+      t.ok('transcripción bajo el hecho', reg.includes('cambio el bajo al veinte'));
+    });
+    await t.case('Bajos montados en Mi equipo', async () => {
+      await t.put('gearInv', 'bajo-020', { kind: 'bajo', name: 'Bajo 0,20 anzuelo 4', fluoro: '0,20', anzuelo: 'nº 4 azul', largo: '120', createdAt: 1 });
+      await t.reload(); await t.goTab('equipo');
+      await t.wait(500);
+      t.ok('categoría «Bajos montados»', /Bajos montados/.test(await t.T('main')));
+      await t.tap('[data-a="eqp-cat"][data-k="bajo"]', 500);
+      t.ok('el bajo aparece con su nombre', (await t.T('#eqpane')).includes('Bajo 0,20 anzuelo 4'), (await t.T('#eqpane')).slice(0, 200));
+    });
   }
 };
