@@ -65,5 +65,20 @@ module.exports = {
       const rig = ((await sesion()).equipos || [])[0] || {};
       t.ok('Verdel activo en el equipo de la salida', (rig.used || []).some(u => u.kind === 'engodo' && u.name === 'Verdel (casero)'));
     });
+    await t.case('terminar sin ninguna captura también deja la salida guardada', async () => {
+      const antes = (await t.docs('trips')).length;
+      await t.page.evaluate(async () => { const db = await window.claude.use('db'); const s = await db.collection('sesiones').doc('activa').get(); if (s.exists) await db.collection('sesiones').doc('activa').delete(); });
+      await t.reload(); await t.goTab('salidas'); await t.tap('[data-a="new-trip"]'); await t.tap('[data-a="lv-live"]', 500); await t.tap('[data-a="lv-start"]', 900);
+      await t.tap('[data-a="sess-finish"]', 200); await t.tap('[data-a="sess-finish"]', 2500);
+      t.eq('una salida más', (await t.docs('trips')).length, antes + 1); t.eq('sesión cerrada', (await t.docs('sesiones')).length, 0);
+    });
+    await t.case('«Siguiente» no se queda mudo aunque un dato venga roto', async () => {
+      await t.put('trips', 'roto', { date: '2026-11-01', mode: 'Spinning', siteId: 's1', siteName: 'Matxitxako', stops: [], equipos: [], eventos: [null, { t: 1, type: 'spot', name: 'X' }] });
+      await t.reload(); await t.goTab('salidas');
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a="edit-trip"][data-id="roto"]'); b && b.click(); }); await t.wait(700);
+      for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 500);
+      t.ok('llega a «Guardar salida»', await t.has('[data-a="save-trip"]'));
+      await t.tap('[data-a="save-trip"]', 1500); t.ok('se guarda', !(await t.has('#sheet [data-a="save-trip"]')));
+    });
   }
 };

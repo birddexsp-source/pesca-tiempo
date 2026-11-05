@@ -12,12 +12,12 @@ Los datos viven en el móvil (IndexedDB) y se sincronizan solos al repo privado 
 | App publicada (lo que ve el móvil) | `docs/cuaderno/` (`index.html`, `sw.js`, `shim.js`, `img/`, semillas `*.json`) |
 | Código fuente | `cuaderno-src/` |
 | ├ Base antigua (pantallas originales, ya compilada) | `cuaderno-src/base/cuaderno-v5.html` |
-| ├ Parches nuevos, uno por función, se aplican en orden | `cuaderno-src/parches/p17.js … p35.js` |
+| ├ Parches nuevos, uno por función, se aplican en orden | `cuaderno-src/parches/p17.js … p36.js` |
 | └ Compilador | `cuaderno-src/build.py` |
 | Pruebas automáticas | `tests/` (ver `tests/README.md`) |
 
 Los parches añaden/sustituyen funciones sobre la base: p23–p26 equipo y fotos, p27–p31 estadísticas y
-exportar, p32–p33 salida pasada/compañeros, **p34 salida en vivo** (consola, mapa de sitios, audio), **p35 editar capturas del registro y Engodo** (categoría de equipo, «Verdel (casero)» de serie).
+exportar, p32–p33 salida pasada/compañeros, **p34 salida en vivo** (consola, mapa de sitios, audio), **p36 terminar = guardar al instante + «Siguiente» a prueba de fallos**, **p35 editar capturas del registro y Engodo** (categoría de equipo, «Verdel (casero)» de serie).
 
 ## Flujo de trabajo para cambiar algo
 

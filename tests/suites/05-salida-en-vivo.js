@@ -83,22 +83,28 @@ module.exports = {
       t.ok('hoja cerrada', !(await t.has('#sheet:not([hidden])'))); t.ok('seguimos en la app', t.page.url().startsWith('http://localhost'));
       await t.tap('#sessbar .sbt', 400);
     });
-    await t.case('terminar pide confirmación y abre la salida con todo', async () => {
+    await t.case('terminar pide confirmación y deja la salida guardada al instante', async () => {
       await t.tap('[data-a="sess-finish"]', 200); t.ok('pide «¿Seguro?»', (await t.T('[data-a="sess-finish"]')).includes('Seguro'));
       await t.wait(4300); t.eq('el aviso caduca', await t.T('[data-a="sess-finish"]'), 'Terminar salida');
-      await t.tap('[data-a="sess-finish"]', 200); await t.tap('[data-a="sess-finish"]', 1500);
-      t.ok('editor de salida abierto', await t.has('#sheet [data-a="save-trip"], #sheet [data-a="next-step"]'));
-      t.ok('con el sitio que elegí al empezar (no el que adivina el GPS)', (await t.T('#sheet')).includes('Matxitxako'));
-      for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 450);
-      t.ok('registro de la salida en el resumen', await t.has('.lvtl'));
-      await t.tap('[data-a="save-trip"]', 1500);
+      await t.tap('[data-a="sess-finish"]', 200); await t.tap('[data-a="sess-finish"]', 2500);
+      t.ok('aviso de salida guardada', /Salida guardada/.test(await t.toast() || ''), await t.toast());
+      t.ok('sin editor abierto: nada que rellenar', !(await t.has('#sheet [data-a="save-trip"], #sheet [data-a="next-step"]')));
       const tr = (await t.docs('trips')).filter(x => x.id !== 'd1');
       t.eq('salida guardada', tr.length, 1);
+      t.ok('con el sitio que elegí al empezar (no el que adivina el GPS)', tr[0].siteName === 'Matxitxako');
       t.ok('con 2 equipos y eventos', tr[0].equipos.length === 2 && tr[0].eventos.length >= 5);
       t.ok('con compañeros', (tr[0].companions || []).length === 2);
       t.eq('la sesión se borra', (await t.docs('sesiones')).length, 0); t.ok('la barra desaparece', !(await t.has('#sessbar')));
       const its = [].concat(...(await t.docs('catches')).filter(c => c.tripId === tr[0].id).map(c => c.items));
       t.ok('las capturas pasaron a la salida', its.length >= 2);
+      t.eq('ya no quedan capturas «por ordenar»', (await t.docs('catches')).filter(c => c.quick).length, 0);
+      await t.reload();
+      await t.page.evaluate(id => { const b = document.querySelector('[data-a="edit-trip"][data-id="' + id + '"]'); b && b.click(); }, tr[0].id); await t.wait(700);
+      t.ok('se puede abrir para completar en casa', await t.has('#sheet [data-a="next-step"]'));
+      for (let i = 0; i < 3; i++) await t.tapIf('[data-a="next-step"]', 450);
+      t.ok('registro de la salida en el resumen', await t.has('.lvtl'));
+      await t.tap('[data-a="save-trip"]', 1500);
+      t.eq('sigue habiendo una sola salida', (await t.docs('trips')).filter(x => x.id !== 'd1').length, 1);
     });
   }
 };
