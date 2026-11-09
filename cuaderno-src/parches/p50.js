@@ -1,5 +1,5 @@
 /* ===== p50: Capturas de la salida — láminas por especie, resumen por persona y detalle al tocar ===== */
-function cpPlate(name){var k=keyOfName(name)||norm(name),ph=spPhotos[k];return ph?'<img loading="lazy" alt="" class="cpl" src="/_blob/'+esc(ph)+'">':'<span class="cpl cpn">'+esc(name.slice(0,1))+'</span>'}
+function cpPlate(name){var k=keyOfName(name)||norm(name),ph=spPhotos[k];return ph?'<img loading="lazy" alt="" class="cpl" data-blob="'+esc(ph)+'" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">':'<span class="cpl cpn">'+esc(name.slice(0,1))+'</span>'}
 function cpData(t){
   var P={},S={};
   catchesOfTrip(t.id).forEach(function(c){(c.items||[]).forEach(function(i,ix){

@@ -300,7 +300,7 @@ module.exports = {
       await abrirSalida(t, 'eqv1');
       for (let k = 0; k < 15 && !(await t.has('[data-a="trip-tab"][data-v="cap"]')); k++) await t.wait(500);
       await t.tap('[data-a="trip-tab"][data-v="cap"]', 500);
-      t.ok('la ficha de la especie usa la lámina', await t.page.evaluate(() => !!document.querySelector('.tds img[src*="plate-boga"]')));
+      t.ok('la ficha de la especie usa la lámina', await t.page.evaluate(() => !!document.querySelector('.tds img[data-blob="plate-boga"]')));
       t.ok('la pestaña cuenta peces (2), no anotaciones', /Capturas\s*2/.test(await t.T('.tdtabs')));
       await t.tap('[data-a="cap-sp"]', 700);
       const dt = await t.page.evaluate(() => document.getElementById('sheetbody').textContent);
