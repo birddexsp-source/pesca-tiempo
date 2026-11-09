@@ -287,6 +287,16 @@ module.exports = {
       r = ((await t.docs('trips')).find(x => x.id === 'cs1') || {}).ruta || {};
       t.ok('«Borrar zonas» la quita', !Object.keys(r).some(k => r[k].areas), JSON.stringify(r).slice(0, 200));
     });
+    await t.case('Resumen: una sola parada con varios spots lo dice y muestra A → B', async () => {
+      await t.put('trips', 'mv1', { date: '2026-09-25', siteId: 's1', siteName: 'Matxitxako', companions: [],
+        stops: [{ id: 'st1', spotName: 'Punta del faro', tFrom: '08:25', tTo: '12:28', photos: [], need: [], tags: [], baits: [] }],
+        eventos: [{ t: 1000, type: 'start', name: 'Punta del faro', noTime: true }, { t: 2000, type: 'spot', name: 'Cala de abajo', noTime: true }] });
+      await t.wait(900); await t.reload(); await t.wait(1500); await t.goTab('salidas');
+      await abrirSalida(t, 'mv1'); await t.wait(600);
+      const x = await t.page.evaluate(() => (document.querySelector('.tl3') || {}).textContent || '');
+      t.ok('la parada muestra el recorrido A → B', /Punta del faro → Cala de abajo/.test(x), x.slice(0, 160));
+      t.ok('aclara que es una sola parada', /Una sola parada/.test(x));
+    });
     await t.case('Equipo de la salida: inicial visual + cada cambio con antes → después, hora y lugar; láminas de especie', async () => {
       await t.put('speciesPhotos', 'boga', { photo: 'plate-boga' });
       await t.put('gearInv', 'dec-h3', { kind: 'anzuelo', modelo: 'Caperlan azul', num: '2', createdAt: 1 });
