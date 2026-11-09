@@ -8432,13 +8432,13 @@ document.head.appendChild(s)})();
 
 /* ===== p50: Capturas de la salida — láminas por especie, resumen por persona y detalle al tocar ===== */
 function cpPlate(name){var k=keyOfName(name)||norm(name),ph=spPhotos[k];return ph?'<img loading="lazy" alt="" class="cpl" data-blob="'+esc(ph)+'" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">':'<span class="cpl cpn">'+esc(name.slice(0,1))+'</span>'}
-function cpData(t){
+function cpData(t,cl){
   var P={},S={};
-  catchesOfTrip(t.id).forEach(function(c){(c.items||[]).forEach(function(i,ix){
+  (cl||catchesOfTrip(t.id)).forEach(function(c){(c.items||[]).forEach(function(i,ix){
     if(!i.species)return;var w=i.who||'',n=i.n||1;
     var p=P[w]=P[w]||{id:w,name:lvPName(w),n:0,sp:{}};p.n+=n;p.sp[i.species]=(p.sp[i.species]||0)+n;
     var s=S[norm(i.species)]=S[norm(i.species)]||{name:i.species,tot:0,w:{}};
-    s.tot+=n;var o=s.w[w]=s.w[w]||{n:0,sz:{},st:{},bait:{},spot:{},list:[]};o.n+=n;o.list.push({cid:c.id,ix:ix,size:i.size,st:i.st,bait:i.bait,n:n});
+    s.tot+=n;var o=s.w[w]=s.w[w]||{n:0,sz:{},st:{},bait:{},spot:{},list:[]};o.n+=n;o.list.push({cid:c.id,ix:ix,size:i.size,st:i.st,bait:i.bait,n:n,sp:i.spotId||'',site:c.siteId||''});
     if(i.size)o.sz[i.size]=(o.sz[i.size]||0)+n;
     var st=i.st==='lib'?'lib':i.st==='esc'?'esc':'casa';o.st[st]=(o.st[st]||0)+n;
     if(i.bait)o.bait[i.bait]=(o.bait[i.bait]||0)+n;
@@ -8462,16 +8462,25 @@ function cpBars(o,k,lab){
   var ks=Object.keys(o);if(!ks.length)return '';var mx=Math.max.apply(null,ks.map(function(x){return o[x]}));
   return '<div class="cpb"><em>'+lab+'</em>'+ks.map(function(x){return '<div class="cpr"><span>'+esc((k&&k[x])||x)+'</span><i style="width:'+Math.round(o[x]/mx*100)+'%"></i><b>'+o[x]+'</b></div>'}).join('')+'</div>';
 }
-function cpFish(o,si){
-  var ST={casa:'a casa',lib:'liberado',esc:'escapado'};
-  return '<div class="cpb"><em>Uno a uno</em>'+o.list.map(function(f){return '<div class="cpf"><span>'+(f.n>1?f.n+' × ':'')+(f.size?esc(f.size)+' · ':'')+esc(ST[f.st]||'a casa')+(f.bait?' · '+esc(f.bait):'')+'</span><button type="button" class="cpx" aria-label="Quitar este pez" data-a="cap-del" data-cid="'+esc(f.cid)+'" data-ix="'+f.ix+'" data-si="'+si+'">✕</button></div>'}).join('')+'</div>';
+function cpSpotOpts(site,cur){
+  var L=spots.filter(function(x){return !site||x.siteId===site}).sort(function(a,b){return String(a.name).localeCompare(String(b.name))});
+  return '<option value="">Sin spot</option>'+L.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===cur?' selected':'')+'>'+esc(x.name)+'</option>'}).join('');
 }
-function cpDetail(i){
-  var t=cpTrip();if(!t)return;var D=cpData(t),s=D.S[i];if(!s)return;
+function cpFish(o,si,spName,who){
+  var ST={casa:'a casa',lib:'liberado',esc:'escapado'},site=(o.list[0]||{}).site||'';
+  var bulk=spots.length?'<label class="cpmv">Mover las '+o.n+' a: <select data-a="cap-mv" data-who="'+esc(who)+'" data-sp="'+esc(spName)+'" data-si="'+si+'">'+cpSpotOpts(site,'')+'</select></label>':'';
+  return bulk+'<details class="cpb cpone"><summary>Uno a uno ('+o.list.length+')</summary>'+o.list.map(function(f){
+    var sp=spots.filter(function(x){return x.id===f.sp})[0];
+    return '<div class="cpf"><span>'+(f.n>1?f.n+' × ':'')+(f.size?esc(f.size)+' · ':'')+esc(ST[f.st]||'a casa')+(f.bait?' · '+esc(f.bait):'')+'</span>'+
+      '<select class="cpsel" data-a="cap-mvf" data-cid="'+esc(f.cid)+'" data-ix="'+f.ix+'" aria-label="Spot de este pez">'+cpSpotOpts(f.site,f.sp)+'</select>'+
+      '<button type="button" class="cpx" aria-label="Quitar este pez" data-a="cap-del" data-cid="'+esc(f.cid)+'" data-ix="'+f.ix+'" data-si="'+si+'">✕</button></div>'}).join('')+'</details>';
+}
+function cpDetail(i,cl){
+  window.__cpcl=cl||null;var t=cpTrip();if(!t&&!cl)return;var D=cpData(t,cl),s=D.S[i];if(!s)return;
   var h='<div class="cphead"><span class="cpa big">'+cpPlate(s.name)+'</span><div><strong>'+s.tot+'</strong> '+(s.tot===1?'pez':'peces')+' en la salida</div></div>';
   Object.keys(s.w).sort(function(a,b){return (a?1:0)-(b?1:0)}).forEach(function(w){
     var o=s.w[w];
-    h+='<div class="cpwho"><h4>'+esc(lvPName(w))+' <span>'+o.n+'</span></h4>'+cpBars(o.sz,{S:'S · pequeño',M:'M · mediano',L:'L · grande'},'Tallas')+cpBars(o.st,STATUS,'Destino')+cpBars(o.bait,null,'Carnada')+cpBars(o.spot,null,'Spot')+cpFish(o,i)+'</div>';
+    h+='<div class="cpwho"><h4>'+esc(lvPName(w))+' <span>'+o.n+'</span></h4>'+cpBars(o.sz,{S:'S · pequeño',M:'M · mediano',L:'L · grande'},'Tallas')+cpBars(o.st,STATUS,'Destino')+cpBars(o.bait,null,'Carnada')+cpBars(o.spot,null,'Spot')+cpFish(o,i,s.name,w)+'</div>';
   });
   openSheet(esc(s.name),h);
 }
@@ -8488,7 +8497,10 @@ async function cpDel(cid,ix,si){
 }
 var _tdBody50=tdBody;
 tdBody=function(t){return TD&&TD.tab==='cap'?cpHTML(t):_tdBody50(t)};
-document.addEventListener('click',function(ev){var d=ev.target.closest?ev.target.closest('[data-a="cap-del"]'):null;if(d){ev.stopPropagation();cpDel(d.getAttribute('data-cid'),+d.getAttribute('data-ix'));return}var b=ev.target.closest?ev.target.closest('[data-a="cap-sp"]'):null;if(!b)return;ev.stopPropagation();cpDetail(+b.getAttribute('data-i'))},true);
+document.addEventListener('click',function(ev){var d=ev.target.closest?ev.target.closest('[data-a="cap-del"]'):null;if(d){ev.stopPropagation();cpDel(d.getAttribute('data-cid'),+d.getAttribute('data-ix'));return}var b=ev.target.closest?ev.target.closest('[data-a="cap-sp"]'):null;if(!b)return;ev.stopPropagation();
+  var cid=b.getAttribute('data-cid');
+  if(cid){var c=catches.filter(function(x){return x.id===cid})[0];if(!c)return;var cl=c.tripId?catchesOfTrip(c.tripId):[c],S=cpData(null,cl).S,nm=norm(b.getAttribute('data-name')),ix=-1;S.forEach(function(x,k){if(norm(x.name)===nm)ix=k});if(ix>-1)cpDetail(ix,cl);return}
+  cpDetail(+b.getAttribute('data-i'))},true);
 /* la pestaña cuenta peces, no anotaciones */
 var _tdView50=tdView;
 tdView=function(t){
@@ -8515,6 +8527,28 @@ renderSalidas=function(){
   return _rs50();
 };
 
+/* mover peces de spot (todos los de una especie/persona, o uno solo) */
+async function cpSetSpot(items){
+  var by={};items.forEach(function(x){(by[x.cid]=by[x.cid]||[]).push(x)});
+  try{
+    for(var cid in by){
+      var c=catches.filter(function(k){return k.id===cid})[0];if(!c)continue;
+      var its=c.items.map(function(i){return Object.assign({},i)});
+      by[cid].forEach(function(x){if(its[x.ix]){if(x.sp)its[x.ix].spotId=x.sp;else delete its[x.ix].spotId}});
+      await db.doc('catches/'+cid).update({items:its,editedAt:Date.now()});
+    }
+    toast('Spot actualizado');closeSheet();
+  }catch(e){toast('No se pudo guardar')}
+}
+document.addEventListener('change',function(ev){
+  var el=ev.target;if(!el||!el.getAttribute)return;var a=el.getAttribute('data-a');
+  if(a==='cap-mvf'){ev.stopPropagation();cpSetSpot([{cid:el.getAttribute('data-cid'),ix:+el.getAttribute('data-ix'),sp:el.value}]);return}
+  if(a==='cap-mv'&&el.value!==''){
+    ev.stopPropagation();var t=cpTrip(),cl=window.__cpcl||null,D=(t||cl)?cpData(t,cl):null;if(!D)return;var S=D.S[+el.getAttribute('data-si')];if(!S)return;var o=S.w[el.getAttribute('data-who')];if(!o)return;
+    cpSetSpot(o.list.map(function(f){return {cid:f.cid,ix:f.ix,sp:el.value}}));
+  }
+},true);
+
 /* ===== p51: si en la salida te mueves por varios spots pero solo hay una parada, el resumen lo dice ===== */
 var _tdBody51=tdBody;
 tdBody=function(t){
@@ -8532,6 +8566,112 @@ tdBody=function(t){
   }catch(e){}
   return h;
 };
+
+/* ===== p52: Memoria del spot — cada visita con sus condiciones, qué pasó y qué cambiarías ===== */
+function mvVisits(s){
+  var out=[],seen={};
+  legsOfSpot(s.id).forEach(function(l){seen[l.tripId]=1;out.push({date:l.date,tripId:l.tripId,l:l,own:true})});
+  trips.forEach(function(t){
+    if(seen[t.id])return;
+    var hit=false;try{hit=rtNodes(t).some(function(n){return n.linked===s.id||(n.sp&&n.sp.id===s.id)})}catch(e){}
+    if(!hit)return;
+    out.push({date:t.date,tripId:t.id,l:(t.stops&&t.stops[0])?Object.assign({},t,t.stops[0]):t,own:false});
+  });
+  return out.sort(function(a,b){return String(b.date).localeCompare(String(a.date))});
+}
+function mvFish(s,v){
+  var n=0,sp={},any=false;
+  catchesOfTrip(v.tripId).forEach(function(c){(c.items||[]).forEach(function(i){
+    if(i.who||!i.species)return;
+    var here=i.spotId?i.spotId===s.id:v.own;
+    if(!here)return;any=true;n+=i.n||1;sp[i.species]=(sp[i.species]||0)+(i.n||1);
+  })});
+  return {n:n,sp:sp};
+}
+function mvIssues(l){
+  var o=[];
+  if(l.waveV==='mucho')o.push('demasiada ola');if(l.waveV==='poco')o.push('poca ola');
+  if(l.windV==='mucho')o.push('demasiado viento');
+  if(l.tideV==='mucho')o.push('marea demasiado alta');if(l.tideV==='poco')o.push('marea muy baja');
+  return o;
+}
+function mvCard(s,v){
+  var l=v.l,iss=mvIssues(l),rated=l.waveV||l.windV||l.tideV,F=mvFish(s,v),dp=dparts(l.date||v.date);
+  var verdict=!rated?'<span class="mvv n">Sin valorar</span>':iss.length?'<span class="mvv bad">⚠ '+esc(iss.join(' · '))+'</span>':'<span class="mvv ok">✓ Condiciones buenas</span>';
+  var pills='';
+  if(l.wave!=null)pills+='<span class="pill '+(l.waveV||'')+'">Ola '+num(l.wave)+' m'+(l.period?' · '+num(l.period,0)+' s':'')+(l.waveV?' · '+VL[l.waveV]:'')+'</span>';
+  if(l.wind!=null)pills+='<span class="pill '+(l.windV||'')+'">Viento '+num(l.wind,0)+' kph'+(l.gust?' (rachas '+num(l.gust,0)+')':'')+(l.windV?' · '+VL[l.windV]:'')+'</span>';
+  if(l.hA!=null)pills+='<span class="pill '+(l.tideV||'')+'">Agua '+num(l.hA)+(l.hB!=null?'→'+num(l.hB):'')+' m'+(l.tideV?' · '+esc(TL[l.tideV]):'')+'</span>';
+  if(l.tpFrom&&PH[l.tpFrom])pills+='<span class="pill">'+esc(PH[l.tpFrom].n)+(l.tpTo&&PH[l.tpTo]?' → '+esc(PH[l.tpTo].n):'')+'</span>';
+  var res=F.n?'🐟 <b>'+F.n+'</b> '+Object.keys(F.sp).map(function(k){return esc(k)+' ×'+F.sp[k]}).join(' · '):'Sin capturas tuyas aquí';
+  var why=leftArr(l.leftWhy).length?'<p class="mvn"><b>Por qué te fuiste:</b> '+esc(leftArr(l.leftWhy).map(function(k){return LEFTW[k]||k}).join(', '))+'</p>':'';
+  return '<article class="mvc"><header><b>'+dp.d+' '+esc(dp.m)+'</b><span>'+esc([l.tFrom?l.tFrom+(l.tTo?'–'+l.tTo:''):'',l.mode||'',(l.baits||[]).join(', ')].filter(Boolean).join(' · '))+'</span>'+verdict+'</header>'+
+    (pills?'<div class="mvp">'+pills+'</div>':'')+'<div class="mvr">'+res+'</div>'+
+    (l.imp?'<p class="mvn"><b>Qué cambiarías:</b> '+esc(l.imp)+'</p>':'')+why+
+    (v.own?'':'<p class="mvs">Parada compartida con otro spot: condiciones de toda la salida.</p>')+'</article>';
+}
+function mvRules(s,V){
+  var L=spotLearn(s),r=[],n=V.filter(function(v){return v.own}).length;
+  if(L.windTooMuch!=null)r.push('Viento de <b>'+num(L.windTooMuch,0)+' kph</b> o más: te sobró');
+  if(L.tooHigh!=null)r.push('Ola de <b>'+num(L.tooHigh)+' m</b> o más: demasiada');
+  if(L.tooLow!=null)r.push('Ola de <b>'+num(L.tooLow)+' m</b> o menos: poca');
+  var hi=[],lo=[];legsOfSpot(s.id).forEach(function(l){if(l.hA==null)return;if(l.tideV==='mucho')hi.push(Math.min(l.hA,l.hB!=null?l.hB:l.hA));if(l.tideV==='poco')lo.push(Math.max(l.hA,l.hB!=null?l.hB:l.hA))});
+  if(hi.length)r.push('Agua de <b>'+num(Math.min.apply(null,hi))+' m</b> o más: demasiado alta');
+  if(lo.length)r.push('Agua de <b>'+num(Math.max.apply(null,lo))+' m</b> o menos: muy baja');
+  return r.length?'<div class="mvno"><h4>No ir si…</h4><ul>'+r.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul><small>Según '+n+(n===1?' salida':' salidas')+' valoradas.</small></div>':'';
+}
+function mvHTML(s){
+  var V=mvVisits(s);
+  var last=V.filter(function(v){return v.l.imp})[0];
+  var h='<div class="sect"><h2>Memoria del spot</h2><span>'+V.length+(V.length===1?' visita':' visitas')+'</span></div>';
+  if(!V.length)return h+'<p class="hint">Aún no has estado aquí. Cuando lo hagas, verás cada visita con sus condiciones y qué cambiarías.</p>';
+  if(last)h+='<div class="mvnext"><em>Para la próxima vez</em><p>'+esc(last.l.imp)+'</p></div>';
+  return h+mvRules(s,V)+'<div class="mvl">'+V.map(function(v){return mvCard(s,v)}).join('')+'</div>';
+}
+var _oss52=openSpotSheet;
+openSpotSheet=function(id){
+  _oss52(id);
+  var s=spots.filter(function(x){return x.id===id})[0],body=document.getElementById('sheetbody');if(!s||!body||body.querySelector('.mvl,.mvnext'))return;
+  var rules=body.querySelector('.rules'),html=mvHTML(s);
+  if(rules)rules.insertAdjacentHTML('afterend',html);else body.insertAdjacentHTML('beforeend',html);
+};
+(function(){var s=document.createElement('style');s.textContent=
+'.mvl{display:flex;flex-direction:column;gap:10px;margin:8px 0 16px}.mvc{border:1px solid var(--line,#ffffff1f);border-radius:14px;padding:12px;background:var(--card,#ffffff08)}'+
+'.mvc header{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-bottom:8px}.mvc header span:not(.mvv){color:var(--muted);font-size:.8rem}.mvv{margin-left:auto;font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:99px}'+
+'.mvv.ok{background:#1f6f4a55;color:#7ee2a8}.mvv.bad{background:#7a2f2f55;color:#ff9f9f}.mvv.n{background:#ffffff14;color:var(--muted)}'+
+'.mvp{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.mvr{font-size:.9rem;margin-bottom:6px}.mvn{margin:6px 0 0;line-height:1.4;font-size:.88rem}.mvs{margin:6px 0 0;color:var(--muted);font-size:.75rem}'+
+'.mvnext{border-left:3px solid var(--accent,#f2b84b);background:var(--card,#ffffff08);border-radius:10px;padding:10px 12px;margin:8px 0}.mvnext em{display:block;font-style:normal;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.mvnext p{margin:4px 0 0}'+
+'.mvno{border:1px solid #7a2f2f88;border-radius:12px;padding:10px 12px;margin:8px 0;background:#7a2f2f22}.mvno h4{margin:0 0 4px;color:#ff9f9f}.mvno ul{margin:0;padding-left:18px}.mvno small{color:var(--muted)}';
+document.head.appendChild(s)})();
+
+/* ===== p53: Capturas — resumen visual por spot (lámina + cantidad), spot real de cada pez; detalle al tocar ===== */
+itemSpotName=function(c,i){
+  var sp=i.spotId&&spots.filter(function(x){return x.id===i.spotId})[0];if(sp)return sp.name;
+  var tr=c.tripId&&trips.filter(function(t){return t.id===c.tripId})[0],st=tr&&(tr.stops||[]).filter(function(s){return String(s.id)===String(i.stopId)})[0];
+  if(st&&st.spotName)return st.spotName;
+  return c.spotName||'';
+};
+capCard=function(c){
+  var p=dparts(c.date),tr=c.tripId&&trips.filter(function(t){return t.id===c.tripId})[0],title=c.siteName||(tr&&tr.siteName)||c.spotName||'Captura suelta';
+  var G={},order=[],mine=(c.items||[]).filter(function(i){return !i.who&&i.species}),oth={};
+  mine.forEach(function(i){var n=itemSpotName(c,i)||'Sin spot';if(!G[n]){G[n]={};order.push(n)}G[n][i.species]=(G[n][i.species]||0)+(i.n||1)});
+  (c.items||[]).forEach(function(i){if(i.who)oth[i.who]=(oth[i.who]||0)+(i.n||1)});
+  var fish=mine.reduce(function(a,i){return a+(i.n||1)},0),photo=c.photos&&c.photos[0];
+  var rows=order.map(function(n){
+    var ks=Object.keys(G[n]).sort(function(a,b){return G[n][b]-G[n][a]});
+    return '<div class="cgrp">'+(order.length>1||n!=='Sin spot'?'<span class="spn">'+esc(n)+'</span>':'')+'<div class="cpchips">'+ks.map(function(k){
+      return '<button type="button" class="cpchip" data-a="cap-sp" data-cid="'+esc(c.id)+'" data-name="'+esc(k)+'"><span class="cpa">'+cpPlate(k)+'</span><b>'+esc(k)+'</b><strong>×'+G[n][k]+'</strong></button>'}).join('')+'</div></div>'}).join('');
+  var ot=Object.keys(oth).map(function(w){return esc(lvPName(w))+' '+oth[w]}).join(' · ');
+  return '<article class="ccard">'+(photo?'<div class="cph"><img loading="lazy" alt="Foto de la pesca" data-blob="'+esc(photo)+'" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">'+(c.photos.length>1?'<span>+'+(c.photos.length-1)+'</span>':'')+'</div>':'')+
+    '<div class="cbd"><div class="chd"><div class="dchip sm"><b>'+p.d+'</b><span>'+esc(p.m)+'</span></div><div class="ctt"><h3>'+esc(title)+'</h3><p>'+esc(longDate(c.date))+(tr&&tr.mode?' · '+esc(tr.mode):'')+'</p></div><div class="cfish"><b>'+fish+'</b><small>'+(fish===1?'pez':'peces')+'</small></div></div>'+
+    rows+(ot?'<p class="cpoth">Compañeros: '+ot+'</p>':'')+(c.notes?'<p class="note">'+esc(c.notes)+'</p>':'')+
+    '<p class="hint cptap">Toca una especie para ver tallas y detalle.</p>'+
+    '<div class="ft"><button class="btn small" data-a="edit-cap" data-id="'+esc(c.id)+'">Editar</button><button class="btn small danger" data-a="del-cap" data-id="'+esc(c.id)+'">Borrar</button></div></div></article>';
+};
+(function(){var s=document.createElement('style');s.textContent=
+'.cpchips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}.cpchip{display:flex;align-items:center;gap:6px;border:1px solid var(--line,#ffffff1f);background:var(--card,#ffffff08);color:inherit;font:inherit;border-radius:12px;padding:4px 10px 4px 4px;cursor:pointer}'+
+'.cpchip .cpa{width:44px;height:32px;border-radius:8px;flex:none}.cpchip strong{color:var(--accent,#f2b84b)}.cpoth{margin:6px 0;color:var(--muted);font-size:.85rem}.cptap{margin:4px 0 8px;font-size:.75rem}';
+document.head.appendChild(s)})();
 
 })();
 </script></body></html>

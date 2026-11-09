@@ -297,6 +297,47 @@ module.exports = {
       t.ok('la parada muestra el recorrido A → B', /Punta del faro → Cala de abajo/.test(x), x.slice(0, 160));
       t.ok('aclara que es una sola parada', /Una sola parada/.test(x));
     });
+    await t.case('Memoria del spot: visitas con condiciones, veredicto, qué cambiarías y «No ir si…»', async () => {
+      await t.put('spots', 'mem1', { name: 'Roca memoria', siteId: 's1', lat: 43.45, lon: -2.75, createdAt: 1 });
+      await t.put('trips', 'mt1', { date: '2026-10-20', siteId: 's1', siteName: 'Matxitxako', mode: 'Corcho', companions: [], stops: [{ id: 'a1', spotId: 'mem1', spotName: 'Roca memoria', tFrom: '08:00', tTo: '11:00', wave: 1.8, period: 9, wind: 25, gust: 40, waveV: 'mucho', windV: 'mucho', tideV: 'ok', hA: 1.2, hB: 3.1, photos: [], need: [], tags: [], baits: ['Gamba'], imp: 'Con tanto viento no se puede lanzar: volver con menos de 12 kph.', leftWhy: ['viento'] }], eventos: [] });
+      await t.put('trips', 'mt2', { date: '2026-11-02', siteId: 's1', siteName: 'Matxitxako', mode: 'Corcho', companions: [], stops: [{ id: 'b1', spotId: 'mem1', spotName: 'Roca memoria', tFrom: '09:00', tTo: '12:00', wave: 0.8, period: 8, wind: 6, gust: 12, waveV: 'ok', windV: 'ok', tideV: 'ok', hA: 1.3, hB: 3.0, photos: [], need: [], tags: [], baits: [] }], eventos: [] });
+      await t.put('catches', 'memc1', { tripId: 'mt2', date: '2026-11-02', ts: 7000, items: [{ species: 'Sargo', n: 2, st: 'casa', stopId: 'b1', spotId: 'mem1' }] });
+      await t.wait(900); await t.reload(); await t.wait(1500); await t.goTab('salidas');
+      await t.page.evaluate(() => { const b = document.createElement('button'); b.setAttribute('data-a', 'open-spot'); b.setAttribute('data-id', 'mem1'); b.id = 'tmpopen'; document.body.appendChild(b); b.click(); });
+      await t.wait(1200);
+      const x = await t.page.evaluate(() => (document.getElementById('sheetbody') || {}).textContent || '');
+      t.ok('sección Memoria del spot con 2 visitas', /Memoria del spot/.test(x) && /2 visitas/.test(x), x.slice(0, 80));
+      t.eq('una tarjeta por visita', await t.N('.mvc'), 2);
+      t.ok('veredicto malo con el motivo', /demasiado viento/.test(x) && /demasiada ola/.test(x));
+      t.ok('veredicto bueno', /Condiciones buenas/.test(x));
+      t.ok('muestra qué cambiarías y «para la próxima vez»', /volver con menos de 12 kph/.test(x) && /Para la próxima vez/.test(x));
+      t.ok('«No ir si…» con el viento aprendido', /No ir si/.test(x) && /25 kph/.test(x));
+      t.ok('capturas de esa visita', /Sargo ×2/.test(x));
+      await t.shot('memoria-spot');
+    });
+    await t.case('Capturas: tarjeta resumida por spot con láminas; el spot real de cada pez; detalle y mover de spot', async () => {
+      await t.put('spots', 'cm1', { name: 'Roca uno', siteId: 's1', lat: 43.45, lon: -2.75, createdAt: 1 });
+      await t.put('spots', 'cm2', { name: 'Roca dos', siteId: 's1', lat: 43.451, lon: -2.751, createdAt: 2 });
+      await t.put('speciesPhotos', 'boga', { photo: 'plate-boga' });
+      await t.put('trips', 'cmt', { date: '2026-12-30', siteId: 's1', siteName: 'Matxitxako', mode: 'Corcho', companions: [], stops: [{ id: 'x1', spotId: 'cm1', spotName: 'Roca uno', photos: [], need: [], tags: [], baits: [] }], eventos: [] });
+      await t.put('catches', 'cmc', { tripId: 'cmt', date: '2026-12-30', siteId: 's1', ts: 9000, photos: [], items: [
+        { species: 'Boga', n: 3, st: 'casa', stopId: 'x1', spotId: 'cm1' }, { species: 'Boga', n: 2, st: 'casa', stopId: 'x1', spotId: 'cm2' }, { species: 'Sargo', n: 1, st: 'lib', stopId: 'x1', spotId: 'cm2' }] });
+      await t.wait(900); await t.reload(); await t.wait(1500); await t.goTab('capturas');
+      for (let k = 0; k < 15 && !(await t.has('.ccard')); k++) await t.wait(500);
+      const c = await t.page.evaluate(() => [...document.querySelectorAll('.ccard')].find(x => /Roca dos/.test(x.textContent)) ? [...document.querySelectorAll('.ccard')].find(x => /Roca dos/.test(x.textContent)).textContent : '');
+      t.ok('cada pez va a su spot (Roca uno y Roca dos), no todos al de la parada', /Roca uno/.test(c) && /Roca dos/.test(c), c.slice(0, 200));
+      t.ok('chips de especie con cantidad', /Boga\s*×3/.test(c) && /Boga\s*×2/.test(c));
+      t.ok('sin lista eterna: no hay etiquetas de talla por pez', !(await t.has('.ccard .fcs')));
+      await t.page.evaluate(() => { const b = [...document.querySelectorAll('.cpchip')].find(x => /Boga/.test(x.textContent)); b && b.click(); });
+      await t.wait(900);
+      const d = await t.page.evaluate(() => (document.getElementById('sheetbody') || {}).textContent || '');
+      t.ok('al tocar la especie se ve el detalle', /Uno a uno/.test(d) && /Mover las 5/.test(d), d.slice(0, 120));
+      await t.page.evaluate(() => { const s = document.querySelector('select[data-a="cap-mv"]'); s.value = 'cm1'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+      await t.wait(1200);
+      const items = ((await t.docs('catches')).find(x => x.id === 'cmc') || {}).items || [];
+      t.ok('mover todas las bogas a otro spot', items.filter(i => i.species === 'Boga').every(i => i.spotId === 'cm1') && items.find(i => i.species === 'Sargo').spotId === 'cm2', JSON.stringify(items));
+      await t.shot('capturas-resumen');
+    });
     await t.case('Equipo de la salida: inicial visual + cada cambio con antes → después, hora y lugar; láminas de especie', async () => {
       await t.put('speciesPhotos', 'boga', { photo: 'plate-boga' });
       await t.put('gearInv', 'dec-h3', { kind: 'anzuelo', modelo: 'Caperlan azul', num: '2', createdAt: 1 });

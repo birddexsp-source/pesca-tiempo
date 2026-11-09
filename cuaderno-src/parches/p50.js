@@ -1,12 +1,12 @@
 /* ===== p50: Capturas de la salida — láminas por especie, resumen por persona y detalle al tocar ===== */
 function cpPlate(name){var k=keyOfName(name)||norm(name),ph=spPhotos[k];return ph?'<img loading="lazy" alt="" class="cpl" data-blob="'+esc(ph)+'" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">':'<span class="cpl cpn">'+esc(name.slice(0,1))+'</span>'}
-function cpData(t){
+function cpData(t,cl){
   var P={},S={};
-  catchesOfTrip(t.id).forEach(function(c){(c.items||[]).forEach(function(i,ix){
+  (cl||catchesOfTrip(t.id)).forEach(function(c){(c.items||[]).forEach(function(i,ix){
     if(!i.species)return;var w=i.who||'',n=i.n||1;
     var p=P[w]=P[w]||{id:w,name:lvPName(w),n:0,sp:{}};p.n+=n;p.sp[i.species]=(p.sp[i.species]||0)+n;
     var s=S[norm(i.species)]=S[norm(i.species)]||{name:i.species,tot:0,w:{}};
-    s.tot+=n;var o=s.w[w]=s.w[w]||{n:0,sz:{},st:{},bait:{},spot:{},list:[]};o.n+=n;o.list.push({cid:c.id,ix:ix,size:i.size,st:i.st,bait:i.bait,n:n});
+    s.tot+=n;var o=s.w[w]=s.w[w]||{n:0,sz:{},st:{},bait:{},spot:{},list:[]};o.n+=n;o.list.push({cid:c.id,ix:ix,size:i.size,st:i.st,bait:i.bait,n:n,sp:i.spotId||'',site:c.siteId||''});
     if(i.size)o.sz[i.size]=(o.sz[i.size]||0)+n;
     var st=i.st==='lib'?'lib':i.st==='esc'?'esc':'casa';o.st[st]=(o.st[st]||0)+n;
     if(i.bait)o.bait[i.bait]=(o.bait[i.bait]||0)+n;
@@ -30,16 +30,25 @@ function cpBars(o,k,lab){
   var ks=Object.keys(o);if(!ks.length)return '';var mx=Math.max.apply(null,ks.map(function(x){return o[x]}));
   return '<div class="cpb"><em>'+lab+'</em>'+ks.map(function(x){return '<div class="cpr"><span>'+esc((k&&k[x])||x)+'</span><i style="width:'+Math.round(o[x]/mx*100)+'%"></i><b>'+o[x]+'</b></div>'}).join('')+'</div>';
 }
-function cpFish(o,si){
-  var ST={casa:'a casa',lib:'liberado',esc:'escapado'};
-  return '<div class="cpb"><em>Uno a uno</em>'+o.list.map(function(f){return '<div class="cpf"><span>'+(f.n>1?f.n+' × ':'')+(f.size?esc(f.size)+' · ':'')+esc(ST[f.st]||'a casa')+(f.bait?' · '+esc(f.bait):'')+'</span><button type="button" class="cpx" aria-label="Quitar este pez" data-a="cap-del" data-cid="'+esc(f.cid)+'" data-ix="'+f.ix+'" data-si="'+si+'">✕</button></div>'}).join('')+'</div>';
+function cpSpotOpts(site,cur){
+  var L=spots.filter(function(x){return !site||x.siteId===site}).sort(function(a,b){return String(a.name).localeCompare(String(b.name))});
+  return '<option value="">Sin spot</option>'+L.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===cur?' selected':'')+'>'+esc(x.name)+'</option>'}).join('');
 }
-function cpDetail(i){
-  var t=cpTrip();if(!t)return;var D=cpData(t),s=D.S[i];if(!s)return;
+function cpFish(o,si,spName,who){
+  var ST={casa:'a casa',lib:'liberado',esc:'escapado'},site=(o.list[0]||{}).site||'';
+  var bulk=spots.length?'<label class="cpmv">Mover las '+o.n+' a: <select data-a="cap-mv" data-who="'+esc(who)+'" data-sp="'+esc(spName)+'" data-si="'+si+'">'+cpSpotOpts(site,'')+'</select></label>':'';
+  return bulk+'<details class="cpb cpone"><summary>Uno a uno ('+o.list.length+')</summary>'+o.list.map(function(f){
+    var sp=spots.filter(function(x){return x.id===f.sp})[0];
+    return '<div class="cpf"><span>'+(f.n>1?f.n+' × ':'')+(f.size?esc(f.size)+' · ':'')+esc(ST[f.st]||'a casa')+(f.bait?' · '+esc(f.bait):'')+'</span>'+
+      '<select class="cpsel" data-a="cap-mvf" data-cid="'+esc(f.cid)+'" data-ix="'+f.ix+'" aria-label="Spot de este pez">'+cpSpotOpts(f.site,f.sp)+'</select>'+
+      '<button type="button" class="cpx" aria-label="Quitar este pez" data-a="cap-del" data-cid="'+esc(f.cid)+'" data-ix="'+f.ix+'" data-si="'+si+'">✕</button></div>'}).join('')+'</details>';
+}
+function cpDetail(i,cl){
+  window.__cpcl=cl||null;var t=cpTrip();if(!t&&!cl)return;var D=cpData(t,cl),s=D.S[i];if(!s)return;
   var h='<div class="cphead"><span class="cpa big">'+cpPlate(s.name)+'</span><div><strong>'+s.tot+'</strong> '+(s.tot===1?'pez':'peces')+' en la salida</div></div>';
   Object.keys(s.w).sort(function(a,b){return (a?1:0)-(b?1:0)}).forEach(function(w){
     var o=s.w[w];
-    h+='<div class="cpwho"><h4>'+esc(lvPName(w))+' <span>'+o.n+'</span></h4>'+cpBars(o.sz,{S:'S · pequeño',M:'M · mediano',L:'L · grande'},'Tallas')+cpBars(o.st,STATUS,'Destino')+cpBars(o.bait,null,'Carnada')+cpBars(o.spot,null,'Spot')+cpFish(o,i)+'</div>';
+    h+='<div class="cpwho"><h4>'+esc(lvPName(w))+' <span>'+o.n+'</span></h4>'+cpBars(o.sz,{S:'S · pequeño',M:'M · mediano',L:'L · grande'},'Tallas')+cpBars(o.st,STATUS,'Destino')+cpBars(o.bait,null,'Carnada')+cpBars(o.spot,null,'Spot')+cpFish(o,i,s.name,w)+'</div>';
   });
   openSheet(esc(s.name),h);
 }
@@ -56,7 +65,10 @@ async function cpDel(cid,ix,si){
 }
 var _tdBody50=tdBody;
 tdBody=function(t){return TD&&TD.tab==='cap'?cpHTML(t):_tdBody50(t)};
-document.addEventListener('click',function(ev){var d=ev.target.closest?ev.target.closest('[data-a="cap-del"]'):null;if(d){ev.stopPropagation();cpDel(d.getAttribute('data-cid'),+d.getAttribute('data-ix'));return}var b=ev.target.closest?ev.target.closest('[data-a="cap-sp"]'):null;if(!b)return;ev.stopPropagation();cpDetail(+b.getAttribute('data-i'))},true);
+document.addEventListener('click',function(ev){var d=ev.target.closest?ev.target.closest('[data-a="cap-del"]'):null;if(d){ev.stopPropagation();cpDel(d.getAttribute('data-cid'),+d.getAttribute('data-ix'));return}var b=ev.target.closest?ev.target.closest('[data-a="cap-sp"]'):null;if(!b)return;ev.stopPropagation();
+  var cid=b.getAttribute('data-cid');
+  if(cid){var c=catches.filter(function(x){return x.id===cid})[0];if(!c)return;var cl=c.tripId?catchesOfTrip(c.tripId):[c],S=cpData(null,cl).S,nm=norm(b.getAttribute('data-name')),ix=-1;S.forEach(function(x,k){if(norm(x.name)===nm)ix=k});if(ix>-1)cpDetail(ix,cl);return}
+  cpDetail(+b.getAttribute('data-i'))},true);
 /* la pestaña cuenta peces, no anotaciones */
 var _tdView50=tdView;
 tdView=function(t){
@@ -82,3 +94,25 @@ renderSalidas=function(){
   }
   return _rs50();
 };
+
+/* mover peces de spot (todos los de una especie/persona, o uno solo) */
+async function cpSetSpot(items){
+  var by={};items.forEach(function(x){(by[x.cid]=by[x.cid]||[]).push(x)});
+  try{
+    for(var cid in by){
+      var c=catches.filter(function(k){return k.id===cid})[0];if(!c)continue;
+      var its=c.items.map(function(i){return Object.assign({},i)});
+      by[cid].forEach(function(x){if(its[x.ix]){if(x.sp)its[x.ix].spotId=x.sp;else delete its[x.ix].spotId}});
+      await db.doc('catches/'+cid).update({items:its,editedAt:Date.now()});
+    }
+    toast('Spot actualizado');closeSheet();
+  }catch(e){toast('No se pudo guardar')}
+}
+document.addEventListener('change',function(ev){
+  var el=ev.target;if(!el||!el.getAttribute)return;var a=el.getAttribute('data-a');
+  if(a==='cap-mvf'){ev.stopPropagation();cpSetSpot([{cid:el.getAttribute('data-cid'),ix:+el.getAttribute('data-ix'),sp:el.value}]);return}
+  if(a==='cap-mv'&&el.value!==''){
+    ev.stopPropagation();var t=cpTrip(),cl=window.__cpcl||null,D=(t||cl)?cpData(t,cl):null;if(!D)return;var S=D.S[+el.getAttribute('data-si')];if(!S)return;var o=S.w[el.getAttribute('data-who')];if(!o)return;
+    cpSetSpot(o.list.map(function(f){return {cid:f.cid,ix:f.ix,sp:el.value}}));
+  }
+},true);
