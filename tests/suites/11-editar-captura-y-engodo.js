@@ -227,7 +227,7 @@ module.exports = {
       await t.put('trips', 'ed1', { date: '2026-09-22', mode: 'Corcho', siteId: 's1', siteName: 'Matxitxako', stops: [{ id: 'a', spotId: 'sp1', spotName: 'Punta del faro', tFrom: '08:00', tTo: '12:00' }], equipos: [{ id: 'e1' }], companions: [],
         ruta: { 'e:1000': { dir: 'NE', sides: ['Izquierda'] } },
         eventos: [{ t: 1000, type: 'start', name: 'Punta del faro' }, { t: 2000, type: 'spot', name: 'Piedra A' }, { t: 3000, type: 'spot', name: 'Piedra B' }] });
-      await t.reload(); await t.goTab('salidas');
+      await t.wait(900); await t.reload(); await t.goTab('salidas');
       await abrirSalida(t, 'ed1'); await t.page.evaluate(() => { const b = document.querySelector('[data-a="edit-trip"][data-id="ed1"]'); b && b.click(); }); await t.wait(900);
       await t.page.evaluate(() => { const g = document.querySelector('.gtop > summary'); g && g.click(); document.querySelectorAll('#gearblk details').forEach(d => d.open = true); }); await t.wait(400);
       const gk = await t.page.evaluate(() => [...document.querySelectorAll('#gearblk details[data-gk^="e0"]')].map(d => d.dataset.gk));
