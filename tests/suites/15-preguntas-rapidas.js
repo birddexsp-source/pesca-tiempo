@@ -8,16 +8,22 @@ module.exports = {
       const today = new Date().toISOString().slice(0, 10);
       await t.put('trips', 'pq1', { date: today, siteId: 's1', siteName: 'Matxitxako', mode: 'Corcho', companions: [], eventos: [], createdAt: Date.now(), stops: [] });
       await t.wait(900); await t.reload(); await t.wait(1500); await t.goTab('salidas'); await t.wait(600);
-      const c = await t.T('.qrcard[data-kind="post"]');
-      t.ok('aparece «Cuéntame de tu salida» con las 4 preguntas', /Cuéntame de tu salida/.test(c) && /¿Por qué terminaste\?/.test(c) && /¿Qué cambiarías/.test(c), c);
+      const P = '.qrcard[data-kind="post"]';
+      const c = await t.T(P);
+      t.ok('aparece «Cuéntame de tu salida» con la primera pregunta, de una en una', /Cuéntame de tu salida/.test(c) && /¿Por qué terminaste\?/.test(c) && !/¿Cuándo picó mejor\?/.test(c) && (await t.N(P + ' .qrdots i')) === 4, c);
       await t.shot(SHP + 'preguntas-despues');
-      await t.tap('.qrcard[data-kind="post"] [data-q="volver"] [data-v="si"]', 600);
-      await t.page.fill('.qrcard[data-kind="post"] textarea[data-qrt="cambiar"]', 'Gamba más dura y lanzar más lejos'); await t.page.keyboard.press('Tab'); await t.wait(800);
+      await t.tap(P + ' [data-v="nopicaba"]', 700);
+      t.ok('al contestar pasa a la siguiente', /¿Cuándo picó mejor\?/.test(await t.T(P)) && (await t.N(P + ' .qrdots i.on')) === 1);
+      await t.tap(P + ' [data-a="qr-pass"]', 600);
+      t.ok('«Pasar» salta a la siguiente sin guardar nada', /¿Volverías/.test(await t.T(P)) && !(await t.docs('respuestas')).some(x => x.q === 'mejor'));
+      await t.tap(P + ' [data-v="si"]', 700);
+      await t.page.fill(P + ' textarea[data-qrt="cambiar"]', 'Gamba más dura y lanzar más lejos'); await t.page.keyboard.press('Tab'); await t.wait(900);
       const D = await t.docs('respuestas');
-      t.ok('volver=sí y la nota escrita se guardan en esa salida', D.some(x => x.ref === 'pq1' && x.q === 'volver' && x.a === 'si') && D.some(x => x.ref === 'pq1' && x.q === 'cambiar' && /Gamba más dura/.test(x.txt || '')));
-      t.ok('lo contestado se marca ✓', (await t.N('.qrcard[data-kind="post"] .qrq.done')) === 2);
-      await t.tap('.qrcard[data-kind="post"] [data-a="qr-skipall"]', 600);
-      t.ok('«Ahora no» oculta la tarjeta', !(await t.has('.qrcard[data-kind="post"]:not([hidden])')));
+      t.ok('las respuestas y la nota escrita se guardan en esa salida', D.some(x => x.ref === 'pq1' && x.q === 'fin' && x.a === 'nopicaba') && D.some(x => x.ref === 'pq1' && x.q === 'volver' && x.a === 'si') && D.some(x => x.ref === 'pq1' && x.q === 'cambiar' && /Gamba más dura/.test(x.txt || '')));
+      t.ok('al terminar sale «¡Anotado!»', /¡Anotado!/.test(await t.T(P)));
+      await t.shot(SHP + 'preguntas-gracias');
+      await t.wait(3000);
+      t.ok('y luego la tarjeta desaparece', !(await t.has(P + ':not([hidden])')));
     });
     await t.case('En directo: pregunta cuando toca, de un toque y con voz', async () => {
       await t.goTab('salidas'); await t.tap('[data-a="new-trip"]'); await t.tap('[data-a="lv-live"]', 500); await t.tap('[data-a="lv-start"]', 900);
@@ -41,7 +47,7 @@ module.exports = {
     await t.case('Ajustes: lista de respuestas con sitio para el texto de las notas de voz', async () => {
       await t.tap('[data-a="open-settings"]', 700);
       const b = await t.T('#qrblk');
-      t.ok('«Mis respuestas rápidas» cuenta lo guardado y las notas sin texto', /Mis respuestas rápidas/.test(b) && /4 guardadas/.test(b) && /1 nota de voz sin texto/.test(b), b);
+      t.ok('«Mis respuestas rápidas» cuenta lo guardado y las notas sin texto', /Mis respuestas rápidas/.test(b) && /5 guardadas/.test(b) && /1 nota de voz sin texto/.test(b), b);
       await t.page.evaluate(() => { document.getElementById('qrblk').open = true; });
       await t.page.fill('#qrblk textarea[data-qre]', 'El cebo vuelve chupado'); await t.page.keyboard.press('Tab'); await t.wait(800);
       t.ok('el texto de la nota se guarda', (await t.docs('respuestas')).some(x => x.q === 'cebo' && /chupado/.test(x.txt || '')));

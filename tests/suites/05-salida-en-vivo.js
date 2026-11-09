@@ -42,14 +42,14 @@ module.exports = {
       t.ok('guardar → consola', await t.has('#sessbody'));
       const c = (await t.docs('catches'))[0]; t.ok('captura con id de sesión', c && c.sess === 'activa');
       t.ok('con el equipo actual', c && c.items[0].eq === (await sesion()).curEq);
-      t.ok('contador sube', (await t.T('.lvhead')).includes('1 tuya'));
+      t.ok('contador sube', (await t.T('.lvh')).replace(/\s+/g, '').includes('1peztuyo'));
     });
     await t.case('captura de un compañero queda a su nombre', async () => {
       await t.tap('[data-a="lv-cap"]', 600); await t.tap('[data-a="qc-who"][data-w="k1"]', 300);
       await t.tap('[data-a="qc-sp"]', 150); await t.tap('#qc-ok', 900);
       const its = [].concat(...(await t.docs('catches')).map(c => c.items));
       t.ok('un ítem con who=k1', its.some(i => i.who === 'k1'));
-      t.ok('contador de compañeros', (await t.T('.lvhead')).includes('1 de un compañero'));
+      t.ok('contador de compañeros', (await t.T('.lvh')).replace(/\s+/g, '').includes('1decompañeros'));
     });
     await t.case('cambio de spot: validaciones y guardado con motivo', async () => {
       await t.tap('[data-a="lv-spot"]', 400);
@@ -70,7 +70,7 @@ module.exports = {
       await t.tap('[data-a="lv-eq-save"]', 900);
       const s = await sesion(); t.eq('2 equipos', s.equipos.length, 2); t.eq('modalidad nueva', s.mode, 'Surfcasting');
       t.ok('motivo en el equipo B', s.equipos[1].why === 'No picaban'); t.eq('equipo actual = B', s.curEq, s.equipos[1].id);
-      t.ok('la consola muestra «Equipo B»', (await t.T('.lvhead')).includes('Equipo B'));
+      t.ok('la consola muestra «Equipo B»', (await t.T('.lvh')).includes('Equipo B'));
     });
     await t.case('cambio de bajo: marcar qué cambias, fluoro y anzuelo; queda en el registro', async () => {
       await t.tap('[data-a="lv-eq"]', 400);
