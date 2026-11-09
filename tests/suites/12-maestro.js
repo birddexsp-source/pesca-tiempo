@@ -35,7 +35,7 @@ module.exports = {
       t.ok('«Mejor no ir» cita el viento de 25 kph de tu visita', /Mejor no ir/.test(adv) && /No vayas a Roca turbia/.test(adv) && /viento 2[6-9]|viento 30/.test(adv), adv);
       await t.page.evaluate(() => document.querySelector('.pdays').scrollIntoView({ block: 'start' })); await t.wait(300); await t.shot(SHP + 'plan-arriba');
       const book = await t.page.evaluate(() => [...document.querySelectorAll('.mdh')].map(e => e.textContent));
-      t.eq('7 hipótesis en el libro', book.length, 7);
+      t.eq('8 hipótesis en el libro', book.length, 8);
       const H = (re) => book.find(x => re.test(x)) || '';
       t.ok('tomadilla vs cristal: lo confirman tus datos con las cifras', /Tus datos lo confirman/.test(H(/tomadilla rinde/)) && /1,3 sargos\/h/.test(H(/tomadilla rinde/)) && /0,3 sargos\/h/.test(H(/tomadilla rinde/)), H(/tomadilla rinde/));
       t.ok('barro: faltan datos y no se inventa un veredicto', /Faltan datos/.test(H(/chocolate/)));

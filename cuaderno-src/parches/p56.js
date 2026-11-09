@@ -45,7 +45,7 @@ function mdRow(H){
   var E=mdEval(H),on=!!(HYP[H.id]&&HYP[H.id].probar);
   var chip={ok:['Tus datos lo confirman','ok'],bad:['Tus datos lo contradicen','bad'],eq:['Sin diferencia clara','am'],nd:['Faltan datos','nd']}[E.st];
   var nums=H.la+': <b>'+mdFmt(H,E.ra)+'</b> '+(E.ra!=null?H.unit:'')+' <small>('+E.A.v+(E.A.v===1?' salida':' salidas')+')</small> · '+H.lb+': <b>'+mdFmt(H,E.rb)+'</b> '+(E.rb!=null?H.unit:'')+' <small>('+E.B.v+(E.B.v===1?' salida':' salidas')+')</small>';
-  var need=E.st==='nd'?'<small class="hint">Hacen falta al menos 2 salidas de cada tipo con horas apuntadas.</small>':'';
+  var need=E.st==='nd'?'<small class="hint">Hacen falta al menos 2 salidas de cada tipo '+(H.hours===false?'con el agua apuntada':'con horas apuntadas')+'.</small>':'';
   return '<div class="mdh '+E.st+'"><div class="mdt"><b>'+esc(H.txt)+'</b><span class="mdc '+chip[1]+'">'+chip[0]+'</span></div><small class="mds">Fuente: '+esc(H.src)+'</small><p class="mdn">'+nums+'</p>'+need+
     '<button type="button" class="btn small'+(on?' primary':'')+'" data-a="md-probar" data-id="'+H.id+'" aria-pressed="'+on+'">'+(on?'🧪 Lo probaré en la próxima salida ✓':'🧪 Probar en la próxima salida')+'</button></div>';
 }

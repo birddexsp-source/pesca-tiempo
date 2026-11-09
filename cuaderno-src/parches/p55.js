@@ -9,7 +9,6 @@ var AG={}; /* aguas/<stopId> = {stopId,agua,pk,ago,u} */
 },300)})();
 
 function agAdd(iso,n){var d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
-function agDayMax(iso){var f=fcOf(iso);if(!f||!f.samples||!f.samples.length)return null;var m=null;f.samples.forEach(function(x){if(x.wave!=null&&(m==null||x.wave>m))m=x.wave});return m}
 /* de cada visita: lo que apuntó a mano, o el aviso de agua dado durante la salida en directo */
 function agOf(l,tripId){
   var key=l&&(l.stopId!=null?l.stopId:l.id),m=key!=null&&key!=='0'?AG[key]:null,o={agua:m&&m.agua||null,pk:m&&m.pk!=null?m.pk:null,ago:m&&m.ago!=null?m.ago:null};
@@ -26,13 +25,6 @@ rebuildLegs=function(){_rl55();legs.forEach(function(l){var o=agOf(l);l.agua=o.a
 function agCtx(l){
   if(l.pkM!=null||l.agoM!=null){var p=l.pkM!=null?+l.pkM:null;return {pk:p,ago:l.agoM!=null?+l.agoM:0,known:p!=null,src:'manual'}}
   return agStorm(l.date,l.wave);
-}
-function agStorm(iso,ownWave){
-  var vals=[];
-  for(var k=-3;k<=0;k++){var d=agAdd(iso,k),m=agDayMax(d);if(m==null&&k===0&&ownWave!=null&&ownWave!==''&&!isNaN(+ownWave))m=+ownWave;if(m!=null)vals.push({d:d,m:m,k:k})}
-  if(vals.length<3)return {pk:null,ago:null,known:false,src:null,n:vals.length};
-  var pk=Math.max.apply(null,vals.map(function(x){return x.m})),last=vals.filter(function(x){return x.m>=pk*0.9}).pop();
-  return {pk:pk,ago:-last.k,known:true,src:'windy',n:vals.length};
 }
 function agColor(a){return {cristal:'#7fd6ff',tomadilla:'#d9c46a',tomada:'#b98a4a',chocolate:'#7a4a28'}[a]||'#8a93a3'}
 function agName(a){var x=AGL.filter(function(q){return q[0]===a})[0];return x?x[1]:''}
