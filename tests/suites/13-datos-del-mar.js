@@ -61,8 +61,8 @@ module.exports = {
       await t.wait(900); await t.reload(); await t.wait(3500); await t.goTab('hoy'); await t.wait(1200);
       const book2 = await t.page.evaluate(() => [...document.querySelectorAll('.mdh')].map(e => e.textContent));
       const L2 = book2.find(x => /lluvia reciente enturbia/.test(x)) || '';
-      t.ok('con 2 visitas con lluvia (agua 2,5 de media) y 2 sin ella (0): lo confirman tus datos', /Tus datos lo confirman/.test(L2) && /2,5/.test(L2), L2);
-      await t.page.evaluate(() => document.querySelector('.mdh').scrollIntoView({ block: 'start' })); await t.wait(300);
+      t.ok('con 2 visitas con lluvia (agua 2,5 de media) y 2 sin ella (0): lo confirman tus datos', /Lo confirman/.test(L2) && /Con ≥10 mm en 48 h2,5/.test(L2), L2);
+      await t.page.evaluate(() => { const b = document.querySelector('.mdbook'); b.open = true; document.querySelectorAll('.mdh').forEach((d, i) => { d.open = i === 1 || i === 4; }); b.scrollIntoView({ block: 'start' }); }); await t.wait(300);
       await t.shot(SHP + 'libro-lluvia');
     });
   }

@@ -69,9 +69,8 @@ function marSrcLine(){
 var _adc57=agDayCard;
 agDayCard=function(iso){
   var h=_adc57(iso),r=agRain(iso),ex='';
-  if(r!=null)ex+='<span>🌧 Lluvia en las últimas 48 h: <b>'+num(r,0)+' mm</b>'+(r>=10?' · puede enturbiar el agua cerca de desembocaduras':'')+'</span>';
-  ex+=marSrcLine();
-  return ex?h.replace(/<\/div>$/,ex+'</div>'):h;
+  if(r!=null)ex+='<div class="agr"><span class="agi">🌧</span><span>Lluvia en las últimas 48 h: <b>'+num(r,0)+' mm</b>'+(r>=10?' · puede enturbiar el agua cerca de desembocaduras':'')+'</span></div>';
+  return h.replace('<!--ag-extra-->',ex).replace('<!--ag-src-->',marSrcLine());
 };
 var _agl57=agLine;
 agLine=function(s,P){
@@ -84,15 +83,10 @@ mvCard=function(s,v){
   return r!=null?h.replace(/<\/article>$/,'<p class="mvs mvrain">🌧 Lluvia en las 48 h previas: '+num(r,0)+' mm.</p></article>'):h;
 };
 /* hipótesis nueva: la lluvia enturbia aunque el mar esté en calma */
-MDH.push({id:'lluvia',txt:'La lluvia reciente enturbia el agua aunque el mar esté en calma.',src:'Lógica de escorrentía de ríos (no es de pesca; a comprobar)',unit:'(0 cristal · 3 chocolate)',better:'higher',
+MDH.push({id:'lluvia',cat:'agua',txt:'La lluvia reciente enturbia el agua aunque el mar esté en calma.',src:'Lógica de escorrentía de ríos (no es de pesca; a comprobar)',unit:'(0 cristal · 3 chocolate)',better:'higher',
   hours:false,la:'Con ≥10 mm en 48 h',lb:'Sin lluvia fuerte',
   side:function(v){if(!v.l.agua||!v.c.known||v.c.pk>=AGST)return null;var r=agRain(v.l.date);return r==null?null:r>=10?'A':'B'},
   num:function(v){return AGS[v.l.agua]},den:function(){return 1}});
-/* la hipótesis de lluvia no depende de horas: vale cualquier visita con agua apuntada */
-var _mdv57=mdVisits;
-mdVisits=function(){
-  return legs.filter(function(l){return agHours(l)!=null||l.agua}).map(function(l){return {l:l,I:agInfer(l),c:agCtx(l)}});
-};
-(function(){var s=document.createElement('style');s.textContent='.agday .hint{display:block}.mvrain{color:#58a8ff}';document.head.appendChild(s)})();
+(function(){var s=document.createElement('style');s.textContent='.mvrain{color:var(--wave)}';document.head.appendChild(s)})();
 var _rh57=renderHoy;
 renderHoy=function(){marRefresh();return _rh57()};

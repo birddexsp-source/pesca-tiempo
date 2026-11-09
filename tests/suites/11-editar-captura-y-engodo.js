@@ -400,10 +400,10 @@ module.exports = {
       await t.wait(900); await t.reload(); await t.wait(1800); await t.goTab('hoy'); await t.wait(1200);
       await t.page.evaluate(() => { const b = document.querySelector('[data-d="2026-12-11"]'); b && b.click(); }); await t.wait(1000);
       const plan = await t.page.evaluate(() => (document.querySelector('.agday') || {}).textContent || '');
-      t.ok('Plan: mar de fondo del día (pico y días)', /Mar de fondo/.test(plan) && /3,4 m/.test(plan) && /2 días/.test(plan), plan);
+      t.ok('Plan: mar de fondo del día (pico y días)', /Agua y mar/.test(plan) && /3,4 m/.test(plan) && /2 días/.test(plan), plan);
       const smr = await t.page.evaluate(() => [...document.querySelectorAll('.smr')].map(e => e.textContent).join('\n'));
       t.ok('Plan: agua probable en Roca turbia por su visita parecida', /Roca turbia[\s\S]*Agua probable: Tomadilla[\s\S]*1 visita parecida/.test(smr), smr);
-      t.ok('Plan: tu agua según tus salidas', await t.has('.agideal .agbar'));
+      t.ok('Plan: tu agua según tus salidas (dentro de «Agua y mar»)', await t.has('.agday .agmore .agbar'));
       await t.page.evaluate(() => document.querySelector('.agday').scrollIntoView({ block: 'start' })); await t.wait(300); await t.shot('plan-agua');
       await t.page.evaluate(() => { const b = document.createElement('button'); b.setAttribute('data-a', 'open-spot'); b.setAttribute('data-id', 'agA'); document.body.appendChild(b); b.click(); });
       await t.wait(1200);

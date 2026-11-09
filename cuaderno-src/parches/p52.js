@@ -67,10 +67,10 @@ openSpotSheet=function(id){
   if(rules)rules.insertAdjacentHTML('afterend',html);else body.insertAdjacentHTML('beforeend',html);
 };
 (function(){var s=document.createElement('style');s.textContent=
-'.mvl{display:flex;flex-direction:column;gap:10px;margin:8px 0 16px}.mvc{border:1px solid var(--line,#ffffff1f);border-radius:14px;padding:12px;background:var(--card,#ffffff08)}'+
+'.mvl{display:flex;flex-direction:column;gap:10px;margin:8px 0 16px}.mvc{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--surface)}'+
 '.mvc header{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-bottom:8px}.mvc header span:not(.mvv){color:var(--muted);font-size:.8rem}.mvv{margin-left:auto;font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:99px}'+
-'.mvv.ok{background:#1f6f4a55;color:#7ee2a8}.mvv.bad{background:#7a2f2f55;color:#ff9f9f}.mvv.n{background:#ffffff14;color:var(--muted)}'+
+'.mvv.ok{background:rgba(61,220,151,.16);color:var(--ok)}.mvv.bad{background:rgba(255,122,107,.16);color:var(--no)}.mvv.n{background:var(--surface2);color:var(--muted)}'+
 '.mvp{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.mvr{font-size:.9rem;margin-bottom:6px}.mvn{margin:6px 0 0;line-height:1.4;font-size:.88rem}.mvs{margin:6px 0 0;color:var(--muted);font-size:.75rem}'+
-'.mvnext{border-left:3px solid var(--accent,#f2b84b);background:var(--card,#ffffff08);border-radius:10px;padding:10px 12px;margin:8px 0}.mvnext em{display:block;font-style:normal;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.mvnext p{margin:4px 0 0}'+
-'.mvno{border:1px solid #7a2f2f88;border-radius:12px;padding:10px 12px;margin:8px 0;background:#7a2f2f22}.mvno h4{margin:0 0 4px;color:#ff9f9f}.mvno ul{margin:0;padding-left:18px}.mvno small{color:var(--muted)}';
+'.mvnext{border-left:3px solid var(--tide);background:var(--surface);border-radius:10px;padding:10px 12px;margin:8px 0}.mvnext em{display:block;font-style:normal;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.mvnext p{margin:4px 0 0}'+
+'.mvno{border:1px solid rgba(255,122,107,.4);border-radius:12px;padding:10px 12px;margin:8px 0;background:rgba(255,122,107,.08)}.mvno h4{margin:0 0 4px;color:var(--no)}.mvno ul{margin:0;padding-left:18px}.mvno small{color:var(--muted)}';
 document.head.appendChild(s)})();

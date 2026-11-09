@@ -143,22 +143,18 @@ function agLine(s,P){
   return '<small class="agl"><i class="agdot s" style="background:'+agColor(r.agua)+'"></i>Agua probable: <b>'+esc(agName(r.agua))+'</b> · '+esc(why)+' · según '+r.n+(r.n===1?' visita parecida':' visitas parecidas')+'</small>';
 }
 function agDayCard(iso){
-  var c=agStorm(iso,null);
-  if(!c.known)return '<div class="agday"><b>💧 Mar de fondo</b><span class="hint">Sin previsión guardada de los 3 días previos: no puedo decir cuánto hace del último temporal.</span></div>';
-  var t=c.pk>=AGST?'Pico de <b>'+num(c.pk)+' m</b> '+(c.ago===0?'hoy':'hace <b>'+c.ago+(c.ago===1?' día':' días')+'</b>')+(c.ago>=2?' · el agua suele estar aclarando':c.ago===1?' · agua probablemente aún tomada':' · agua revuelta'):'Sin mar fuerte en los últimos 3 días (máx. '+num(c.pk)+' m)';
-  return '<div class="agday"><b>💧 Mar de fondo</b><span>'+t+'</span></div>';
-}
-function agIdeal(){
-  var R=agByLevel(legs),keys=Object.keys(R);if(!keys.length)return '';
-  var bars=agLevelBars(R);
-  return '<section class="card agideal"><div class="hd"><b>Tu agua según tus salidas</b><span class="hint">todas tus visitas con el agua apuntada</span></div>'+bars+'</section>';
+  var c=agStorm(iso,null),bars=agLevelBars(agByLevel(legs)),row;
+  if(!c.known)row='<div class="agr"><span class="agi">🌊</span><span class="hint">Sin datos de los 3 días previos: no puedo decir cuánto hace del último temporal.</span></div>';
+  else if(c.pk>=AGST)row='<div class="agr"><span class="agi">🌊</span><span>Pico de <b>'+num(c.pk)+' m</b> '+(c.ago===0?'<b>hoy</b>':'hace <b>'+c.ago+(c.ago===1?' día':' días')+'</b>')+(c.ago>=2?' · el agua suele estar aclarando':c.ago===1?' · agua probablemente aún tomada':' · agua revuelta')+'</span></div>';
+  else row='<div class="agr"><span class="agi">🌊</span><span>Sin mar fuerte en los últimos 3 días (máx. <b>'+num(c.pk)+' m</b>)</span></div>';
+  return '<section class="card agday"><div class="hd"><b>💧 Agua y mar</b><span class="hint">'+esc(dayLabel(iso))+' '+dparts(iso).d+'</span></div>'+row+'<!--ag-extra-->'+(bars?'<details class="agmore"><summary>Tu agua según tus salidas</summary>'+bars+'</details>':'')+'<!--ag-src--></section>';
 }
 var _rh55=renderHoy;
 renderHoy=function(){
   var h=_rh55();
   try{
     var fut=fcFuture();if(!fut.length)return h;
-    var iso=(day&&fut.some(function(f){return f.date===day}))?day:fut[0].date,add=agDayCard(iso)+agIdeal(),k='<div class="sect"><h2>Sitios</h2>',i=h.indexOf(k);
+    var iso=(day&&fut.some(function(f){return f.date===day}))?day:fut[0].date,add=agDayCard(iso),k='<div class="sect"><h2>Sitios</h2>',i=h.indexOf(k);
     if(i>-1)h=h.slice(0,i)+add+h.slice(i);
   }catch(e){}
   return h;
@@ -176,7 +172,7 @@ stopHTML=function(s,i){
 var _lch55=lvConsoleHTML;
 lvConsoleHTML=function(){
   var h=_lch55(),ev=((SESS&&SESS.events)||[]).filter(function(e){return e&&e.type==='agua'}),cur=ev.length?ev[ev.length-1].v:null;
-  var blk='<div class="block"><h3>💧 Agua ahora</h3>'+'<div class="agc" role="group" aria-label="Color del agua">'+AGL.map(function(q){return '<button type="button" class="ag '+q[0]+(cur===q[0]?' on':'')+'" data-a="lv-agua" data-v="'+q[0]+'" aria-pressed="'+(cur===q[0])+'"><i></i>'+q[1]+'</button>'}).join('')+'</div><p class="hint">Tómalo con la mirada al llegar; si cambia, vuelve a tocar.</p></div>';
+  var blk='<div class="block"><h3>💧 Agua ahora</h3>'+'<div class="agc" role="group" aria-label="Color del agua">'+AGL.map(function(q){return '<button type="button" class="ag '+q[0]+(cur===q[0]?' on':'')+'" data-a="lv-agua" data-v="'+q[0]+'" aria-pressed="'+(cur===q[0])+'"><i></i>'+q[1]+'</button>'}).join('')+'</div>'+(cur?'':'<p class="hint">Tómalo con la mirada al llegar; si cambia, vuelve a tocar.</p>')+'</div>';
   var k='<div class="block"><h3>Cronómetro',i=h.indexOf(k);
   return i<0?h+blk:h.slice(0,i)+blk+h.slice(i);
 };
@@ -206,14 +202,15 @@ document.addEventListener('change',function(ev){
 },true);
 (function(){var s=document.createElement('style');s.textContent=
 '.agc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0}.agc.sm{margin:4px 0}'+
-'.ag{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:12px;border:1px solid var(--line,#ffffff1f);background:var(--surface2,#ffffff0d);color:inherit;font:600 12px/1.1 var(--sans,inherit);min-height:52px}'+
-'.ag i{width:22px;height:22px;border-radius:50%;display:block;border:2px solid #ffffff44}.ag.cristal i{background:#7fd6ff}.ag.tomadilla i{background:#d9c46a}.ag.tomada i{background:#b98a4a}.ag.chocolate i{background:#7a4a28}'+
-'.ag.on{border-color:#fff;background:#ffffff1f;box-shadow:0 0 0 2px #ffffff55 inset}.ag.on i{border-color:#fff}'+
-'.agd{margin:4px 0 0}.agd summary{font-size:.78rem;color:var(--muted);cursor:pointer}.mva{margin-top:10px;border-top:1px dashed var(--line,#ffffff22);padding-top:8px}'+
-'.agcard{border:1px solid var(--line,#ffffff1f);border-radius:14px;padding:12px;background:var(--card,#ffffff08);margin:8px 0 16px}.agcard h4{margin:12px 0 6px;font-size:.85rem}'+
-'.agsp{margin:0 0 8px;font-size:.9rem}.agstrip{margin:6px 0}.agcols{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px}.agcol{display:flex;flex-direction:column;align-items:center;border-left:1px solid #ffffff14;min-height:48px}.agcol:first-child{border-left:0}'+
-'.agdots{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;min-height:30px;padding:2px}.agdot{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#111;font-size:.68rem;border:2px solid #ffffff55}.agdot.s{width:10px;height:10px;display:inline-block;margin-right:6px;vertical-align:middle}'+
-'.agcol small{font-size:.72rem;color:var(--muted)}.agbar{display:grid;grid-template-columns:96px 1fr;grid-template-areas:"n t" "v v";gap:2px 8px;align-items:center;margin:6px 0}.agn{grid-area:n;display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600}.agn i{width:12px;height:12px;border-radius:50%;display:inline-block}'+
-'.agtr{grid-area:t;height:10px;background:#ffffff12;border-radius:6px;overflow:hidden}.agtr u{display:block;height:100%;border-radius:6px;text-decoration:none}.agv{grid-area:v;font-size:.76rem;color:var(--muted)}'+
-'.agday{display:flex;flex-direction:column;gap:2px;border-radius:14px;padding:10px 12px;margin:10px 0;background:#3fd0c914;border:1px solid #3fd0c944;font-size:.9rem}.agideal{margin:10px 0}.agideal .hd{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}.agl{color:var(--muted);font-size:.8rem;line-height:1.35}';
+'.ag{display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 2px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);font:600 11.5px/1.1 var(--body);min-height:52px}'+
+'.agc.sm .ag{min-height:44px;padding:7px 2px}.ag i{width:20px;height:20px;border-radius:50%;display:block;border:2px solid rgba(255,255,255,.25)}.ag.cristal i{background:#7fd6ff}.ag.tomadilla i{background:#d9c46a}.ag.tomada i{background:#b98a4a}.ag.chocolate i{background:#7a4a28}'+
+'.ag.on{border-color:var(--ink);background:var(--surface);box-shadow:0 0 0 1px var(--ink) inset}.ag.on i{border-color:var(--ink)}'+
+'.agd{margin:4px 0 0}.agd summary{font-size:12.5px;color:var(--muted);cursor:pointer}.mva{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}'+
+'.agcard{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--surface);margin:8px 0 16px}.agcard h4{margin:14px 0 6px;font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}'+
+'.agsp{margin:0 0 8px;font-size:14px}.agstrip{margin:6px 0}.agcols{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px}.agcol{display:flex;flex-direction:column;align-items:center;border-left:1px solid var(--line);min-height:48px}.agcol:first-child{border-left:0}'+
+'.agdots{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;min-height:30px;padding:2px}.agdot{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#111;font:700 10.5px var(--mono);border:2px solid rgba(255,255,255,.35)}.agdot.s{width:10px;height:10px;display:inline-block;margin-right:6px;vertical-align:middle}'+
+'.agcol small{font:600 11px var(--mono);color:var(--muted)}.agbar{display:grid;grid-template-columns:100px 1fr;grid-template-areas:"n t" "v v";gap:2px 8px;align-items:center;margin:8px 0}.agn{grid-area:n;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}.agn i{width:12px;height:12px;border-radius:50%;display:inline-block}'+
+'.agtr{grid-area:t;height:8px;background:var(--surface2);border-radius:6px;overflow:hidden}.agtr u{display:block;height:100%;border-radius:6px;text-decoration:none}.agv{grid-area:v;font-size:12px;color:var(--muted)}'+
+'.agday{margin:12px 0;display:flex;flex-direction:column;gap:8px}.agr{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}.agi{flex:none;width:22px;text-align:center}.agmore{border-top:1px solid var(--line);padding-top:8px}.agmore summary{cursor:pointer;font:600 13px var(--body);color:var(--muted)}.agday>.hint{margin:0;font-size:11.5px}'+
+'.agl{color:var(--muted);font-size:12.5px;line-height:1.35}.agblk .agd{margin-top:6px}';
 document.head.appendChild(s)})();

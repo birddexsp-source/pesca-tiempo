@@ -5,29 +5,44 @@ var HYP={}; /* hipotesis/<id> = {id,probar:true} */
   db.collection('hipotesis').onSnapshot(function(s){HYP={};s.docs.forEach(function(d){var o=JSON.parse(JSON.stringify(d.data()||{}));HYP[o.id||d.id]=o});try{if(tab==='hoy'&&!tripDraft)refresh()}catch(e){}},function(){});
 },300)})();
 
-/* visitas con horas: la base de toda comparación */
+/* visitas con horas o con agua apuntada: la base de toda comparación (se calcula una vez por cambio de datos) */
+var MDC={k:'',v:null};
+function mdKey(){var u=0;Object.keys(AG).forEach(function(k){u+=AG[k].u||0});return [legs.length,catches.length,trips.length,Object.keys(AG).length,u,(typeof MAR!=='undefined'&&MAR.at)||0].join('|')}
 function mdVisits(){
-  return legs.filter(function(l){return agHours(l)!=null}).map(function(l){return {l:l,I:agInfer(l),c:agCtx(l)}});
+  var k=mdKey();if(MDC.k===k&&MDC.v)return MDC.v;
+  MDC={k:k,v:legs.filter(function(l){return agHours(l)!=null||l.agua}).map(function(l){return {l:l,I:agInfer(l),c:agCtx(l)}})};
+  return MDC.v;
 }
 function mdSun(l){
   try{var d=dateOf(l.date),r=sunUT(d,true),s=sunUT(d,false),a=isoMs(l.date+'T'+l.tFrom),b=isoMs(l.date+'T'+l.tTo);if(b<a)b+=86400000;if(r==null||s==null||isNaN(a))return null;
     var H=3600000,ov=function(x,y){return a<y&&b>x};return ov(r-H,r+1.5*H)||ov(s-1.5*H,s+H)}catch(e){return null}
 }
+function mdSargoH(v){return v.I.sargo}
+function mdHours(v){return v.I.h}
+var MDCAT=[['agua','Agua, mar y viento'],['hora','Hora, marea y luna'],['cebo','Cebo y bogas']];
 var MDH=[
- {id:'barro',txt:'Con agua chocolate (barro total) se pesca mal.',src:'Foro de pesca (varios pescadores coinciden)',unit:'sargos/h',better:'higher',
-  la:'Tomadilla o tomada',lb:'Chocolate',side:function(v){var a=v.l.agua;return !a?null:a==='chocolate'?'B':(a==='tomadilla'||a==='tomada')?'A':null},num:function(v){return v.I.sargo},den:function(v){return v.I.h}},
- {id:'tomadilla',txt:'El agua tomadilla rinde más que el agua cristal.',src:'Tu experiencia (Jon)',unit:'sargos/h',better:'higher',
-  la:'Tomadilla',lb:'Cristal',side:function(v){var a=v.l.agua;return a==='tomadilla'?'A':a==='cristal'?'B':null},num:function(v){return v.I.sargo},den:function(v){return v.I.h}},
- {id:'temporal',txt:'Rinde más 1–3 días después de un temporal que sin mar fuerte.',src:'Tu experiencia + blogs de pesca',unit:'sargos/h',better:'higher',
-  la:'1–3 días tras ≥'+AGST+' m',lb:'Sin temporal',side:function(v){var c=v.c;if(!c.known||c.pk==null)return null;return c.pk>=AGST&&c.ago>=1&&c.ago<=3?'A':c.pk<AGST?'B':null},num:function(v){return v.I.sargo},den:function(v){return v.I.h}},
- {id:'sube',txt:'El sargo está más activo con la marea subiendo.',src:'Blog Asturpeskin',unit:'sargos/h',better:'higher',
-  la:'Marea subiendo',lb:'Marea bajando',side:function(v){var a=v.l.hA,b=v.l.hB;if(a==null||b==null)return null;return b>a+0.2?'A':b<a-0.2?'B':null},num:function(v){return v.I.sargo},den:function(v){return v.I.h}},
- {id:'alba',txt:'Amanecer y ocaso son las horas buenas.',src:'Blog Asturpeskin',unit:'sargos/h',better:'higher',
-  la:'Cerca del alba u ocaso',lb:'A otras horas',side:function(v){var r=mdSun(v.l);return r==null?null:r?'A':'B'},num:function(v){return v.I.sargo},den:function(v){return v.I.h}},
- {id:'bogas',txt:'Cuando entran bogas, la pesca de sargo se hunde.',src:'Vídeo que viste (sin verificar)',unit:'sargos/h',better:'higher',
-  la:'Sin bogas',lb:'Con bogas',side:function(v){return v.I.any?(v.I.bogas?'B':'A'):null},num:function(v){return v.I.sargo},den:function(v){return v.I.h}},
- {id:'cangrejo',txt:'El cangrejo como cebo aleja a las bogas.',src:'Lo has oído (sin verificar)',unit:'de bogas',better:'lower',pct:true,
-  la:'Con cangrejo',lb:'Con otro cebo',side:function(v){if(!v.I.any)return null;var b=(v.l.baits||[]).join(' ');return !b?null:/cangrejo/i.test(b)?'A':'B'},num:function(v){return v.I.boga},den:function(v){return v.I.n}}
+ {id:'barro',cat:'agua',txt:'Con agua chocolate (barro total) se pesca mal.',src:'Foro de pesca (varios pescadores coinciden)',unit:'sargos/h',better:'higher',
+  la:'Tomadilla o tomada',lb:'Chocolate',side:function(v){var a=v.l.agua;return !a?null:a==='chocolate'?'B':(a==='tomadilla'||a==='tomada')?'A':null},num:mdSargoH,den:mdHours},
+ {id:'tomadilla',cat:'agua',txt:'El agua tomadilla rinde más que el agua cristal.',src:'Tu experiencia (Jon)',unit:'sargos/h',better:'higher',
+  la:'Tomadilla',lb:'Cristal',side:function(v){var a=v.l.agua;return a==='tomadilla'?'A':a==='cristal'?'B':null},num:mdSargoH,den:mdHours},
+ {id:'temporal',cat:'agua',txt:'Rinde más 1–3 días después de un temporal que sin mar fuerte.',src:'Tu experiencia + blogs de pesca',unit:'sargos/h',better:'higher',
+  la:'1–3 días tras mar fuerte',lb:'Sin temporal',side:function(v){var c=v.c;if(!c.known||c.pk==null)return null;return c.pk>=AGST&&c.ago>=1&&c.ago<=3?'A':c.pk<AGST?'B':null},num:mdSargoH,den:mdHours},
+ {id:'viento',cat:'agua',txt:'Con poco viento (menos de 12 kph) se pesca mejor.',src:'Sentido común de pescador (a comprobar)',unit:'sargos/h',better:'higher',
+  la:'Menos de 12 kph',lb:'12 kph o más',side:function(v){var w=v.l.wind;if(w==null||w==='')return null;return +w<12?'A':'B'},num:mdSargoH,den:mdHours},
+ {id:'sube',cat:'hora',txt:'El sargo está más activo con la marea subiendo.',src:'Blog Asturpeskin',unit:'sargos/h',better:'higher',
+  la:'Marea subiendo',lb:'Marea bajando',side:function(v){var a=v.l.hA,b=v.l.hB;if(a==null||b==null)return null;return b>a+0.2?'A':b<a-0.2?'B':null},num:mdSargoH,den:mdHours},
+ {id:'alba',cat:'hora',txt:'Amanecer y ocaso son las horas buenas.',src:'Blog Asturpeskin',unit:'sargos/h',better:'higher',
+  la:'Cerca del alba u ocaso',lb:'A otras horas',side:function(v){var r=mdSun(v.l);return r==null?null:r?'A':'B'},num:mdSargoH,den:mdHours},
+ {id:'luna',cat:'hora',txt:'Con luna llena y mar en calma el sargo come poco.',src:'Blog Asturpeskin',unit:'sargos/h',better:'lower',
+  la:'Luna llena + calma',lb:'Otras lunas + calma',side:function(v){var w=v.l.wave;if(w==null||w===''||+w>=1.2||!v.l.date)return null;try{return moon(dateOf(v.l.date)).ill>=90?'A':'B'}catch(e){return null}},num:mdSargoH,den:mdHours},
+ {id:'invierno',cat:'hora',txt:'En invierno el sargo baja a aguas más hondas y rinde menos desde roca.',src:'Il Giornale dei Marinai (hábitos del sargo)',unit:'sargos/h',better:'lower',
+  la:'Dic–feb',lb:'Resto del año',side:function(v){var m=v.l.date?+v.l.date.slice(5,7):0;return !m?null:(m===12||m<=2)?'A':'B'},num:mdSargoH,den:mdHours},
+ {id:'bogas',cat:'cebo',txt:'Cuando entran bogas, la pesca de sargo se hunde.',src:'Vídeo que viste (sin verificar)',unit:'sargos/h',better:'higher',
+  la:'Sin bogas',lb:'Con bogas',side:function(v){return v.I.any?(v.I.bogas?'B':'A'):null},num:mdSargoH,den:mdHours},
+ {id:'cangrejo',cat:'cebo',txt:'El cangrejo como cebo aleja a las bogas.',src:'Lo has oído (sin verificar)',unit:'de bogas',better:'lower',pct:true,
+  la:'Con cangrejo',lb:'Con otro cebo',side:function(v){if(!v.I.any)return null;var b=(v.l.baits||[]).join(' ');return !b?null:/cangrejo/i.test(b)?'A':'B'},num:function(v){return v.I.boga},den:function(v){return v.I.n}},
+ {id:'duro',cat:'cebo',txt:'Los cebos duros (mejillón, cangrejo) rinden más que la gamba.',src:'Il Giornale dei Marinai (el adulto come bivalvos y crustáceos)',unit:'sargos/h',better:'higher',
+  la:'Mejillón o cangrejo',lb:'Gamba o langostino',side:function(v){var b=(v.l.baits||[]).join(' ');if(!b)return null;return /mejill|cangrej|erizo|lapa|navaja/i.test(b)?'A':/gamba|langostin/i.test(b)?'B':null},num:mdSargoH,den:mdHours}
 ];
 function mdEval(H){
   var S={A:{v:0,n:0,d:0},B:{v:0,n:0,d:0}};
@@ -41,17 +56,28 @@ function mdEval(H){
   return o;
 }
 function mdFmt(H,r){return r==null?'—':H.pct?Math.round(r*100)+' %':num(r,1)}
-function mdRow(H){
-  var E=mdEval(H),on=!!(HYP[H.id]&&HYP[H.id].probar);
-  var chip={ok:['Tus datos lo confirman','ok'],bad:['Tus datos lo contradicen','bad'],eq:['Sin diferencia clara','am'],nd:['Faltan datos','nd']}[E.st];
-  var nums=H.la+': <b>'+mdFmt(H,E.ra)+'</b> '+(E.ra!=null?H.unit:'')+' <small>('+E.A.v+(E.A.v===1?' salida':' salidas')+')</small> · '+H.lb+': <b>'+mdFmt(H,E.rb)+'</b> '+(E.rb!=null?H.unit:'')+' <small>('+E.B.v+(E.B.v===1?' salida':' salidas')+')</small>';
-  var need=E.st==='nd'?'<small class="hint">Hacen falta al menos 2 salidas de cada tipo '+(H.hours===false?'con el agua apuntada':'con horas apuntadas')+'.</small>':'';
-  return '<div class="mdh '+E.st+'"><div class="mdt"><b>'+esc(H.txt)+'</b><span class="mdc '+chip[1]+'">'+chip[0]+'</span></div><small class="mds">Fuente: '+esc(H.src)+'</small><p class="mdn">'+nums+'</p>'+need+
-    '<button type="button" class="btn small'+(on?' primary':'')+'" data-a="md-probar" data-id="'+H.id+'" aria-pressed="'+on+'">'+(on?'🧪 Lo probaré en la próxima salida ✓':'🧪 Probar en la próxima salida')+'</button></div>';
+var MDORD={ok:0,bad:1,eq:2,nd:3};
+var MDCHIP={ok:['Lo confirman tus datos','ok'],bad:['Lo contradicen tus datos','bad'],eq:['Sin diferencia clara','am'],nd:['Faltan datos','nd']};
+function mdBar(H,label,r,n,best,mx){
+  return '<div class="mdb'+(best?' best':'')+'"><span class="mdbl">'+esc(label)+'</span><span class="mdbt2"><u style="width:'+(r!=null&&mx>0?Math.max(5,Math.round(r/mx*100)):0)+'%"></u></span><b>'+mdFmt(H,r)+'</b><small>'+n+(n===1?' salida':' salidas')+'</small></div>';
+}
+function mdRow(H,E){
+  E=E||mdEval(H);
+  var on=!!(HYP[H.id]&&HYP[H.id].probar),ch=MDCHIP[E.st],mx=Math.max(E.ra||0,E.rb||0);
+  var good=H.pct?'lower':(H.id==='lluvia'?null:'higher'),hl=good&&E.ra!=null&&E.rb!=null&&E.ra!==E.rb,bestA=hl&&((E.ra>E.rb)===(good==='higher'));
+  var cmp='<div class="mdcmp">'+mdBar(H,H.la,E.ra,E.A.v,hl&&bestA,mx)+mdBar(H,H.lb,E.rb,E.B.v,hl&&!bestA,mx)+'</div><p class="mdun">'+esc(H.unit)+'</p>';
+  var need=E.st==='nd'?'<p class="hint mdneed">Hacen falta al menos 2 salidas de cada tipo '+(H.hours===false?'con el agua apuntada':'con horas apuntadas')+'. Hay '+E.A.v+' y '+E.B.v+'.</p>':'';
+  return '<details class="mdh '+E.st+'"><summary><i class="mdd"></i><span class="mdq">'+esc(H.txt)+'</span><em class="mdc '+ch[1]+'">'+ch[0]+'</em></summary><div class="mdbody"><p class="mds">Fuente: '+esc(H.src)+'</p>'+cmp+need+
+    '<button type="button" class="btn small'+(on?' primary':'')+'" data-a="md-probar" data-id="'+H.id+'" aria-pressed="'+on+'">'+(on?'🧪 Lo probaré en la próxima salida ✓':'🧪 Probar en la próxima salida')+'</button></div></details>';
 }
 function mdBook(){
-  return '<div class="sect"><h2>🎓 El libro del maestro</h2><span>hipótesis, no verdades</span></div>'+
-    '<p class="hint">Lo que cuentan pescadores y vídeos entra aquí como hipótesis. Solo cuenta como cierto cuando tus propias salidas lo confirman.</p>'+MDH.map(mdRow).join('');
+  var ev=MDH.map(function(H){return {H:H,E:mdEval(H)}}),c={ok:0,bad:0};ev.forEach(function(x){if(c[x.E.st]!=null)c[x.E.st]++});
+  var sub=MDH.length+' hipótesis'+(c.ok?' · '+c.ok+(c.ok===1?' confirmada':' confirmadas'):'')+(c.bad?' · '+c.bad+(c.bad===1?' contradicha':' contradichas'):'');
+  var body=MDCAT.map(function(cat){
+    var xs=ev.filter(function(x){return x.H.cat===cat[0]}).sort(function(a,b){return MDORD[a.E.st]-MDORD[b.E.st]});
+    return xs.length?'<h4 class="eyebrow">'+cat[1]+'</h4>'+xs.map(function(x){return mdRow(x.H,x.E)}).join(''):'';
+  }).join('');
+  return '<details class="card mdbook"><summary><span class="mdbh"><b>🎓 Libro del maestro</b><small>'+sub+'</small></span></summary><p class="hint">Lo que cuentan pescadores y vídeos entra aquí como hipótesis. Solo cuenta como cierto cuando tus propias salidas lo confirman.</p>'+body+'</details>';
 }
 /* ----- consejo del Plan ----- */
 function mdDayShort(iso){var p=dparts(iso);return dayLabel(iso).slice(0,3)+' '+p.d}
@@ -75,24 +101,25 @@ function mdAdvice(){
   var exp=C.filter(function(c){return c.sm.st==='ok'&&c.pr&&c.pr.none&&c.pr.ctx&&c.pr.ctx.pk>=AGST&&c.E.best}).sort(function(a,b){return b.sc-a.sc})[0];
   return {top:top,avoid:avoid,exp:exp};
 }
+function mdWhyList(items){return items.length?'<ul class="mdwhy">'+items.map(function(x){return '<li class="'+x[0]+'">'+esc(x[1])+'</li>'}).join('')+'</ul>':''}
 function mdAdviceHTML(){
   var A;try{A=mdAdvice()}catch(e){return ''}
   if(!A.top.length&&!A.avoid.length&&!A.exp)return '';
   var rows=A.top.map(function(c,i){
-    var b=c.E.best,parts=[mm(b.from)+'–'+mm(Math.min(b.to,1440)),pct(c.sc)+' %'];
-    var l2=[];if(c.sm.st!=='nd')l2.push(c.sm.txt);
-    var ag=c.pr&&c.pr.agua?'agua probable '+agName(c.pr.agua).toLowerCase()+' ('+(c.pr.ctx.pk>=AGST?(c.pr.ctx.ago===0?'temporal hoy':c.pr.ctx.ago+(c.pr.ctx.ago===1?' día':' días')+' tras '+num(c.pr.ctx.pk)+' m'):'sin temporal reciente')+')':'';
-    if(ag)l2.push(ag);c.why.forEach(function(w){l2.push(w)});
-    return '<button type="button" class="mdr" data-a="day" data-d="'+c.iso+'"><span class="mdn1">'+(i+1)+'</span><span><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.E.s.name)+'</b><small>'+esc(parts.join(' · '))+'</small>'+(l2.length?'<small class="mdw">¿Por qué? '+esc(l2.join(' · '))+'</small>':'')+'</span></button>';
+    var b=c.E.best,w=[];
+    if(c.sm.st==='ok'||c.sm.st==='am')w.push([c.sm.st==='ok'?'ok':'warn',c.sm.txt]);
+    if(c.pr&&c.pr.agua)w.push(['ok','Agua probable '+agName(c.pr.agua).toLowerCase()+' ('+(c.pr.ctx.pk>=AGST?(c.pr.ctx.ago===0?'temporal hoy':c.pr.ctx.ago+(c.pr.ctx.ago===1?' día':' días')+' tras '+num(c.pr.ctx.pk)+' m'):'sin temporal reciente')+')']);
+    c.why.forEach(function(x){w.push([/genérica/.test(x)?'warn':'ok',x.charAt(0).toUpperCase()+x.slice(1)])});
+    return '<button type="button" class="mdr" data-a="day" data-d="'+c.iso+'"><span class="mdn1">'+(i+1)+'</span><span class="mdr2"><span class="mdr1"><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.E.s.name)+'</b><em>'+pct(c.sc)+' %</em></span><small>'+mm(b.from)+'–'+mm(Math.min(b.to,1440))+'</small>'+mdWhyList(w)+'</span></button>';
   }).join('');
   var av=A.avoid.sort(function(a,b){return a.iso<b.iso?-1:1}).slice(0,3).map(function(c){
-    return '<button type="button" class="mdr bad" data-a="day" data-d="'+c.iso+'"><span class="mdn1">✕</span><span><b>No vayas a '+esc(c.E.s.name)+' · '+esc(mdDayShort(c.iso))+'</b><small class="mdw">⚠ '+esc(c.txt)+'</small></span></button>';
+    return '<button type="button" class="mdr bad" data-a="day" data-d="'+c.iso+'"><span class="mdn1">✕</span><span class="mdr2"><span class="mdr1"><b>'+esc(c.E.s.name)+' · '+esc(mdDayShort(c.iso))+'</b></span>'+mdWhyList([['no',c.txt]])+'</span></button>';
   }).join('');
   var ex='';
-  if(A.exp){var c=A.exp,cx=c.pr.ctx;ex='<button type="button" class="mdr exp" data-a="day" data-d="'+c.iso+'"><span class="mdn1">🧪</span><span><b>Para que el maestro aprenda: '+esc(c.E.s.name)+' · '+esc(mdDayShort(c.iso))+'</b><small class="mdw">Nunca has ido ahí '+(cx.ago===0?'el día del temporal':cx.ago+(cx.ago===1?' día':' días')+' tras '+num(cx.pk)+' m')+'. Si vas, apunta el color del agua.</small></span></button>'}
-  return '<section class="card mdadv"><div class="hd"><b>🎓 El maestro dice</b><span class="hint">con la previsión cargada y tus salidas</span></div>'+
-    (rows?'<h4>Mejores opciones</h4>'+rows:'<p class="hint">Ningún día de la previsión llega a un buen plan con tu receta.</p>')+(av?'<h4>Mejor no ir</h4>'+av:'')+(ex?'<h4>Para probar</h4>'+ex:'')+
-    '<small class="hint">Orienta, no decide. Cada «por qué» sale de tus visitas o de la previsión.</small></section>';
+  if(A.exp){var c=A.exp,cx=c.pr.ctx;ex='<button type="button" class="mdr exp" data-a="day" data-d="'+c.iso+'"><span class="mdn1">🧪</span><span class="mdr2"><span class="mdr1"><b>'+esc(c.E.s.name)+' · '+esc(mdDayShort(c.iso))+'</b></span>'+mdWhyList([['ok','Nunca has ido ahí '+(cx.ago===0?'el día del temporal':cx.ago+(cx.ago===1?' día':' días')+' tras '+num(cx.pk)+' m')],['ok','Si vas, apunta el color del agua: así el maestro aprende']])+'</span></button>'}
+  return '<section class="card mdadv"><div class="hd"><b>🎓 El maestro dice</b><span class="hint">con tu previsión y tus salidas</span></div>'+
+    (rows?'<h4 class="eyebrow">Mejores opciones</h4>'+rows:'<p class="hint">Ningún día de la previsión llega a un buen plan con tu receta.</p>')+(av?'<h4 class="eyebrow">Mejor no ir</h4>'+av:'')+(ex?'<h4 class="eyebrow">Para probar</h4>'+ex:'')+
+    '<p class="hint mdfoot">Orienta, no decide. Cada motivo sale de tus visitas o de la previsión.</p></section>';
 }
 var _rh56=renderHoy;
 renderHoy=function(){
@@ -142,12 +169,19 @@ document.addEventListener('click',function(ev){
   b.classList.toggle('primary',on);b.setAttribute('aria-pressed',on);b.textContent=on?'🧪 Lo probaré en la próxima salida ✓':'🧪 Probar en la próxima salida';
 },true);
 (function(){var s=document.createElement('style');s.textContent=
-'.mdh{border:1px solid var(--line,#ffffff1f);border-radius:14px;padding:12px;background:var(--card,#ffffff08);margin:8px 0;display:flex;flex-direction:column;gap:6px}.mdh.ok{border-color:#1f6f4a99}.mdh.bad{border-color:#7a2f2f99}'+
-'.mdt{display:flex;flex-direction:column;gap:6px}.mdt b{line-height:1.3}.mdc{align-self:flex-start;font-size:.74rem;font-weight:700;padding:3px 10px;border-radius:99px}.mdc.ok{background:#1f6f4a55;color:#7ee2a8}.mdc.bad{background:#7a2f2f55;color:#ff9f9f}.mdc.am{background:#f2b84b33;color:#f2b84b}.mdc.nd{background:#ffffff14;color:var(--muted)}'+
-'.mds{color:var(--muted);font-size:.74rem}.mdn{margin:0;font-size:.85rem;line-height:1.45}.mdh .btn{align-self:flex-start;margin-top:2px}'+
-'.mdadv h4{margin:12px 0 6px;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.mdadv .hd{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}'+
-'.mdr{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border:1px solid var(--line,#ffffff1f);background:var(--surface2,#ffffff0a);color:inherit;border-radius:12px;padding:9px 10px;margin:6px 0;font:inherit}'+
-'.mdr span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0}.mdr small{color:var(--muted);font-size:.8rem;line-height:1.35}.mdr .mdw{color:var(--text,#dfe7ee)}.mdn1{min-width:24px;height:24px;border-radius:50%;background:#3ddc9733;color:#3ddc97;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem}'+
-'.mdr.bad{border-color:#7a2f2f88;background:#7a2f2f1c}.mdr.bad .mdn1{background:#7a2f2f66;color:#ff9f9f}.mdr.exp{border-color:#58a8ff66;background:#58a8ff14}.mdr.exp .mdn1{background:none}'+
-'.mdalert{border:1px solid #f2b84b66;background:#f2b84b12}.mdbt{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.mdp{margin:4px 0}';
+'.mdadv .hd,.agday .hd{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}.mdadv .hd b,.agday .hd b,.mdbh b{font:700 16px/1.2 var(--display)}'+
+'.mdadv h4.eyebrow,.mdbook h4.eyebrow{margin:14px 0 6px}.mdfoot{margin:10px 0 0}'+
+'.mdr{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:14px;padding:10px 12px;margin:6px 0;font:inherit}'+
+'.mdr2{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}.mdr1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.mdr1 b{font:600 15px/1.25 var(--body)}.mdr1 em{font:700 13px var(--mono);font-style:normal;color:var(--ok)}.mdr small{color:var(--muted);font:600 12px var(--mono)}'+
+'.mdn1{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font:700 12px var(--mono)}'+
+'.mdwhy{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:3px}.mdwhy li{position:relative;padding-left:16px;font-size:12.5px;line-height:1.35;color:var(--muted)}.mdwhy li:before{content:"✓";position:absolute;left:0;color:var(--ok);font-weight:700}.mdwhy li.warn:before{content:"!";color:var(--near)}.mdwhy li.no:before{content:"✕";color:var(--no)}.mdwhy li.no{color:var(--ink)}'+
+'.mdr.bad{border-color:rgba(255,122,107,.4);background:rgba(255,122,107,.07)}.mdr.bad .mdn1{background:rgba(255,122,107,.18);color:var(--no)}.mdr.exp{border-color:rgba(88,168,255,.4);background:var(--wave-soft)}.mdr.exp .mdn1{background:none;font-size:16px}'+
+'.mdbook{padding:0;margin:14px 0}.mdbook>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}.mdbook>summary::-webkit-details-marker{display:none}.mdbook>summary:after{content:"›";font-size:22px;color:var(--muted);transform:rotate(90deg);transition:transform .2s}.mdbook[open]>summary:after{transform:rotate(-90deg)}'+
+'.mdbh{display:flex;flex-direction:column;gap:3px}.mdbh small{color:var(--muted);font-size:12.5px}.mdbook>.hint,.mdbook>.eyebrow,.mdbook>.mdh{margin-left:16px;margin-right:16px}.mdbook>.hint{margin-top:0}.mdbook>:last-child{margin-bottom:16px}'+
+'.mdh{border-top:1px solid var(--line)}.mdh>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:10px 1fr;gap:4px 10px;align-items:start;padding:11px 0}.mdh>summary::-webkit-details-marker{display:none}'+
+'.mdd{width:9px;height:9px;border-radius:50%;margin-top:6px;background:var(--none)}.mdh.ok .mdd{background:var(--ok)}.mdh.bad .mdd{background:var(--no)}.mdh.eq .mdd{background:var(--near)}'+
+'.mdq{font:600 14px/1.35 var(--body)}.mdc{grid-column:2;justify-self:start;font:700 11px var(--mono);font-style:normal;padding:3px 9px;border-radius:99px;letter-spacing:.02em}.mdc.ok{background:rgba(61,220,151,.16);color:var(--ok)}.mdc.bad{background:rgba(255,122,107,.16);color:var(--no)}.mdc.am{background:rgba(242,184,75,.16);color:var(--near)}.mdc.nd{background:var(--surface2);color:var(--muted)}'+
+'.mdbody{padding:0 0 14px 20px;display:flex;flex-direction:column;gap:8px}.mds{margin:0;color:var(--muted);font-size:12px}.mdun{margin:0;color:var(--dim);font:600 11px var(--mono)}.mdneed{margin:0}.mdbody .btn{align-self:flex-start}'+
+'.mdcmp{display:flex;flex-direction:column;gap:7px}.mdb{display:grid;grid-template-columns:104px 1fr 52px;grid-template-areas:"l t v" "l t n";gap:0 8px;align-items:center}.mdbl{grid-area:l;font-size:12.5px;line-height:1.25}.mdbt2{grid-area:t;height:8px;background:var(--surface2);border-radius:6px;overflow:hidden}.mdbt2 u{display:block;height:100%;background:var(--none);border-radius:6px}.mdb.best .mdbt2 u{background:var(--ok)}.mdb b{grid-area:v;text-align:right;font:700 13px var(--mono)}.mdb small{grid-area:n;text-align:right;color:var(--dim);font-size:11px}'+
+'.mdalert{border-color:rgba(242,184,75,.4);background:rgba(242,184,75,.08)}.mdbt{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.mdp{margin:4px 0}';
 document.head.appendChild(s)})();
