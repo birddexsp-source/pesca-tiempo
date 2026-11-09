@@ -193,7 +193,7 @@ module.exports = {
       t.ok('no desborda en horizontal', (await t.overflow()).length === 0);
       await t.tap('[data-a="trip-tab"][data-v="cap"]', 400);
       t.eq('tarjetas por especie', await t.page.evaluate(() => document.querySelectorAll('.tds').length), 2);
-      t.eq('todas las capturas en el detalle', await t.page.evaluate(() => document.querySelectorAll('.tdbody .qcrow').length), 6);
+      t.ok('ya no hay botón de borrar el registro entero', !(await t.has('.tdbody .qcrow')));
       await t.shot('salida-capturas');
       await t.tap('[data-a="trip-tab"][data-v="reg"]', 400); t.ok('registro', await t.has('.lvtl'));
       await t.tap('[data-a="trip-back"]', 400); t.ok('volver a la lista', (await t.has('.tcc')) && !(await t.has('.tdtabs')));
@@ -295,7 +295,7 @@ module.exports = {
         eventos: [{ t: 1000, type: 'start', name: 'Punta del faro', noTime: true },
           { t: 2000, type: 'eq', noTime: true, names: 'x', why: 'Se movió la gente', cambios: [{ k: 'modo', de: { name: 'Plomín' }, a: { name: 'Corcho' } }] },
           { t: 3000, type: 'eq', noTime: true, names: 'y', why: 'Roto por una boga', cambios: [{ k: 'anzuelo', de: { id: 'dec-h3', name: 'azul' }, a: { id: 'dec-h2', name: 'nº4' } }] }] });
-      await t.put('catches', 'eqc1', { tripId: 'eqv1', date: '2026-09-24', ts: 5000, items: [{ species: 'Boga', n: 2, st: 'casa' }] });
+      await t.put('catches', 'eqc1', { tripId: 'eqv1', date: '2026-09-24', ts: 5000, items: [{ species: 'Boga', n: 1, st: 'casa', size: 'M' }, { species: 'Boga', n: 1, st: 'lib' }] });
       await t.wait(900); await t.reload(); await t.wait(1500); await t.goTab('salidas');
       await abrirSalida(t, 'eqv1');
       for (let k = 0; k < 15 && !(await t.has('[data-a="trip-tab"][data-v="cap"]')); k++) await t.wait(500);
@@ -305,7 +305,12 @@ module.exports = {
       await t.tap('[data-a="cap-sp"]', 700);
       const dt = await t.page.evaluate(() => document.getElementById('sheetbody').textContent);
       t.ok('al tocar la especie: total y destino', /2/.test(dt) && /Destino/i.test(dt), dt);
-      await t.shot('detalle-especie'); await t.tap('[data-a="close-sheet"]', 400);
+      t.ok('detalle uno a uno con ✕ por pez', (await t.N('.cpx')) >= 1);
+      await t.page.evaluate(() => { window.confirm = () => true; });
+      await t.tap('.cpx', 1200);
+      const left = ((await t.docs('catches')).find(x => x.id === 'eqc1') || {});
+      t.ok('quitar un pez borra solo ese pez, no el registro entero', left.items && left.items.length === 1, JSON.stringify(left).slice(0, 120));
+      await t.shot('detalle-especie');
       await t.tap('[data-a="trip-tab"][data-v="eq"]', 600);
       const x = await t.page.evaluate(() => document.querySelector('.tdbody').textContent);
       t.ok('equipo inicial con la modalidad Plomín', /Equipo inicial/.test(x) && /Plomín/.test(x));
