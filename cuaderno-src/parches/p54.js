@@ -59,7 +59,7 @@ function smBlock(G,P){
   if(!P||!P.C)return '';
   var rows=G.spots.filter(function(E){return !E.pending}).map(function(E){
     var r=smEval(E.s,P),imp=smLastImp(E.s),ic={ok:'●',am:'●',rj:'●',nd:'○'}[r.st],lb={ok:'Verde',am:'Ámbar',rj:'Rojo',nd:'Sin datos'}[r.st];
-    return '<button type="button" class="smr '+r.st+'" data-a="open-spot" data-id="'+esc(E.s.id)+'"><i>'+ic+'</i><span><b>'+esc(E.s.name)+'</b> <em>'+lb+'</em><small>'+(r.st==='rj'||r.st==='am'?'⚠ ':'')+esc(r.txt)+'</small>'+(imp?'<small class="smi">💡 Qué cambiarías: '+esc(imp)+'</small>':'')+'</span></button>';
+    return '<button type="button" class="smr '+r.st+'" data-a="open-spot" data-id="'+esc(E.s.id)+'"><i>'+ic+'</i><span><b>'+esc(E.s.name)+'</b> <em>'+lb+'</em><small>'+(r.st==='rj'||r.st==='am'?'⚠ ':'')+esc(r.txt)+'</small>'+(imp?'<small class="smi">💡 Qué cambiarías: '+esc(imp)+'</small>':'')+(typeof agLine==='function'?agLine(E.s,P):'')+'</span></button>';
   }).join('');
   if(!rows)return '';
   return '<div class="smb"><span class="eyebrow">Tus reglas para este día</span>'+rows+'</div>';

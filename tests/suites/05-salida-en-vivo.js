@@ -25,6 +25,9 @@ module.exports = {
       t.ok('sesión creada', !!s); t.eq('modalidad', s.mode, 'Spinning'); t.eq('2 compañeros', (s.companions || []).length, 2);
       t.eq('un equipo', (s.equipos || []).length, 1); t.ok('equipo actual', !!s.curEq);
       t.ok('consola abierta', await t.has('#sessbody')); t.ok('barra fija visible', await t.has('#sessbar'));
+      await t.tap('[data-a="lv-agua"][data-v="tomadilla"]', 400);
+      t.ok('«Agua ahora»: queda como evento de la salida', ((await sesion()).events || []).some(e => e.type === 'agua' && e.v === 'tomadilla'));
+      t.ok('el chip queda marcado', await t.has('.ag.tomadilla.on'));
     });
     await t.case('recargar a mitad de salida la conserva', async () => {
       await t.reload();
@@ -106,6 +109,7 @@ module.exports = {
       t.ok('con el sitio que elegí al empezar (no el que adivina el GPS)', tr[0].siteName === 'Matxitxako');
       t.ok('con 3 equipos y eventos', tr[0].equipos.length === 3 && tr[0].eventos.length >= 5);
       t.ok('con compañeros', (tr[0].companions || []).length === 2);
+      t.ok('el agua del directo pasa a la salida guardada', tr[0].eventos.some(e => e.type === 'agua' && e.v === 'tomadilla'));
       t.eq('la sesión se borra', (await t.docs('sesiones')).length, 0); t.ok('la barra desaparece', !(await t.has('#sessbar')));
       const its = [].concat(...(await t.docs('catches')).filter(c => c.tripId === tr[0].id).map(c => c.items));
       t.ok('las capturas pasaron a la salida', its.length >= 2);
