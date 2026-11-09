@@ -371,5 +371,20 @@ module.exports = {
       t.ok('sin hora real dice «hora sin anotar»', /hora sin anotar/.test(x));
       await t.shot('equipo-cambios');
     });
+    await t.case('Plan: semáforo por spot y día con tus reglas, motivo de la visita y «qué cambiarías»', async () => {
+      const mk = (date, wind) => ({ date, point: 'test', src: 'test', samples: [1, 4, 7, 10, 13, 16, 19, 22].map(h => ({ h, wave: 1.0, period: 8, wind, gust: wind + 5 })), tides: [] });
+      await t.put('forecast', '2026-12-21', mk('2026-12-21', 30));
+      await t.put('forecast', '2026-12-22', mk('2026-12-22', 8));
+      await t.wait(900); await t.reload(); await t.wait(1500); await t.goTab('hoy'); await t.wait(1200);
+      const day = async d => { await t.page.evaluate(d => { const b = document.querySelector('.pday[data-d="' + d + '"],[data-d="' + d + '"]'); b && b.click(); }, d); await t.wait(900); };
+      await day('2026-12-21');
+      let x = await t.page.evaluate(() => [...document.querySelectorAll('.smr')].map(e => e.className + '|' + e.textContent).join('\n'));
+      t.ok('rojo con viento y la visita que lo justifica', /smr rj/.test(x) && /Roca memoria/.test(x) && /viento 30 kph/.test(x) && /20 oct/.test(x), x.slice(0, 300));
+      t.ok('aviso «qué cambiarías»', /Qué cambiarías: Con tanto viento/.test(x));
+      await t.shot('plan-semaforo-rojo');
+      await day('2026-12-22');
+      x = await t.page.evaluate(() => [...document.querySelectorAll('.smr')].map(e => e.className + '|' + e.textContent).join('\n'));
+      t.ok('verde con viento flojo', /smr ok/.test(x), x.slice(0, 300));
+    });
   }
 };
