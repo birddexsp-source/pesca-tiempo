@@ -9052,42 +9052,77 @@ function mdBook(){
 }
 /* ----- consejo del Plan ----- */
 function mdDayShort(iso){var p=dparts(iso);return dayLabel(iso).slice(0,3)+' '+p.d}
+function mdUnits(P){
+  /* un «sitio» = su grupo de spots; los spots sin sitio van cada uno por su cuenta */
+  var out=[];
+  P.G.forEach(function(G){
+    if(G.onlyPending)return;
+    if(G.site)out.push({name:G.name,site:G.site,spots:G.spots});
+    else G.spots.forEach(function(E){if(!E.pending)out.push({name:E.s.name,site:null,spots:[E]})});
+  });
+  return out;
+}
+function mdSite(P,U){
+  /* puntúa el sitio entero: en cada hora cuenta el mejor de sus spots aptos; ordena los spots por hora */
+  var ok=[],rj=[],i;
+  U.spots.forEach(function(E){
+    if(E.pending)return;
+    var sm=smEval(E.s,P);
+    if(sm.st==='rj'){rj.push({E:E,txt:sm.txt});return}
+    var k=sm.st==='am'?0.85:sm.st==='nd'?0.8:1;
+    ok.push(Object.assign({},E,{v:E.v.map(function(x){return x==null?null:x*k}),orig:E,sm:sm}));
+  });
+  if(!ok.length)return {rj:rj,none:true};
+  var v=P.C.map(function(c,j){var mx=null;ok.forEach(function(E){if(E.v[j]!=null&&(mx==null||E.v[j]>mx))mx=E.v[j]});return mx});
+  var best=bestOf(winsOf(v,0.55,3));
+  if(!best)return {rj:rj,ok:ok,none:true};
+  var route=routeOf(ok,best).map(function(r){return {E:r.E.orig,sm:r.E.sm,from:r.from,to:r.to,avg:r.avg,sum:r.avg*(r.to-r.from)}});
+  var lead=route.slice().sort(function(a,b){return b.sum-a.sum})[0];
+  return {rj:rj,ok:ok,best:best,route:route,lead:lead.E,sm:lead.sm,n:ok.length};
+}
 function mdAdvice(){
   var fut=fcFuture().slice(0,9),C=[],avoid=[],R=agByLevel(legs),tot={s:0,h:0};
   Object.keys(R).forEach(function(k){tot.s+=R[k].s;tot.h+=R[k].h});var mean=tot.h>0?tot.s/tot.h:null;
   fut.forEach(function(f){
     var P=planFor(f.date);if(!P||P.none||!P.C)return;
-    P.S.forEach(function(E){
-      if(E.pending)return;
-      var sm=smEval(E.s,P),sc=E.best?E.best.avg:0,why=[],pr=agPredict(E.s,f.date),bonus=0;
-      if(sm.st==='rj'){if(E.M&&E.M.any||sm.txt)avoid.push({iso:f.date,E:E,txt:sm.txt});return}
-      if(sm.st==='am')sc*=0.85;
-      if(sm.st==='nd'){sc*=0.8;why.push('aún sin visitas valoradas aquí: puntuación genérica')}
-      if(pr.agua&&mean){var r=R[pr.agua],rt=r&&r.h>0?r.s/r.h:null;if(rt!=null){if(rt>=mean*1.2){bonus=0.08;why.push('con ese tipo de agua es cuando más pescas')}else if(rt<=mean*0.6){bonus=-0.08;why.push('con ese tipo de agua sueles pescar poco')}}}
-      C.push({iso:f.date,E:E,sc:sc+bonus,sm:sm,pr:pr,why:why});
+    mdUnits(P).forEach(function(U){
+      var S=mdSite(P,U);
+      if((S.none||S.best.avg<0.5)&&S.rj.length)avoid.push({iso:f.date,name:U.name,site:U.site,E:S.rj[0].E,txt:(U.spots.length>1?S.rj[0].E.s.name+': ':'')+S.rj[0].txt,n:S.rj.length});
+      if(S.none)return;
+      var sc=S.best.avg,why=[],pr=agPredict(S.lead.s,f.date),bonus=0;
+      if(pr.agua&&mean){var r=R[pr.agua],rt=r&&r.h>0?r.s/r.h:null;if(rt!=null){if(rt>=mean*1.2){bonus=0.08;why.push('con ese tipo de agua es cuando más pescas')}else if(rt<=mean*0.6){bonus=-0.08;why.push('con ese tipo de agua sueles pescar menos')}}}
+      C.push({iso:f.date,name:U.name,site:U.site,E:S.lead,best:S.best,route:S.route,rj:S.rj,n:S.n,sc:sc+bonus,sm:S.sm,pr:pr,why:why});
     });
   });
-  var best={};C.filter(function(c){return c.sc>=0.5&&c.E.best}).sort(function(a,b){return b.sc-a.sc}).forEach(function(c){if(!best[c.iso])best[c.iso]=c});
+  var best={};C.filter(function(c){return c.sc>=0.5}).sort(function(a,b){return b.sc-a.sc}).forEach(function(c){if(!best[c.iso])best[c.iso]=c});
   var top=Object.keys(best).map(function(k){return best[k]}).sort(function(a,b){return b.sc-a.sc}).slice(0,3);
-  var exp=C.filter(function(c){return c.sm.st==='ok'&&c.pr&&c.pr.none&&c.pr.ctx&&c.pr.ctx.pk>=AGST&&c.E.best}).sort(function(a,b){return b.sc-a.sc})[0];
+  var exp=C.filter(function(c){return c.sm.st==='ok'&&c.pr&&c.pr.none&&c.pr.ctx&&c.pr.ctx.pk>=AGST}).sort(function(a,b){return b.sc-a.sc})[0];
   return {top:top,avoid:avoid,exp:exp};
+}
+/* recorrido del sitio: «Empieza en A → luego B» (cada tramo con su hora) */
+function mdRouteTxt(c){
+  var r=c.route||[];if(!r.length)return '';
+  if(r.length===1)return 'Quédate en '+r[0].E.s.name+' toda la sesión';
+  return r.map(function(x,i){return (i?'luego ':'empieza en ')+x.E.s.name+' '+mm(x.from)+'–'+mm(Math.min(x.to,1440))}).join(' → ');
 }
 function mdWhyList(items){return items.length?'<ul class="mdwhy">'+items.map(function(x){return '<li class="'+x[0]+'">'+esc(x[1])+'</li>'}).join('')+'</ul>':''}
 function mdAdviceHTML(){
   var A;try{A=mdAdvice()}catch(e){return ''}
   if(!A.top.length&&!A.avoid.length&&!A.exp)return '';
   var rows=A.top.map(function(c,i){
-    var b=c.E.best,w=[];
+    var b=c.best,w=[];
     if(c.sm.st==='ok'||c.sm.st==='am')w.push([c.sm.st==='ok'?'ok':'warn',c.sm.txt]);
     if(c.pr&&c.pr.agua)w.push(['ok','Agua probable '+agName(c.pr.agua).toLowerCase()+' ('+(c.pr.ctx.pk>=AGST?(c.pr.ctx.ago===0?'temporal hoy':c.pr.ctx.ago+(c.pr.ctx.ago===1?' día':' días')+' tras '+num(c.pr.ctx.pk)+' m'):'sin temporal reciente')+')']);
     c.why.forEach(function(x){w.push([/genérica/.test(x)?'warn':'ok',x.charAt(0).toUpperCase()+x.slice(1)])});
-    return '<button type="button" class="mdr" data-a="day" data-d="'+c.iso+'"><span class="mdn1">'+(i+1)+'</span><span class="mdr2"><span class="mdr1"><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.E.s.name)+'</b><em>'+pct(c.sc)+' %</em></span><small>'+mm(b.from)+'–'+mm(Math.min(b.to,1440))+'</small>'+mdWhyList(w)+'</span></button>';
+    (c.route||[]).filter(function(x,j,a){return x.sm.st==='nd'&&a.indexOf(x)===j}).forEach(function(x){w.push(['warn',x.E.s.name+': aún sin visitas valoradas, puntuación genérica'])});
+    (c.rj||[]).forEach(function(x){w.push(['no','No cuentes con '+x.E.s.name+': '+x.txt])});
+    return '<button type="button" class="mdr" data-a="day" data-d="'+c.iso+'"><span class="mdn1">'+(i+1)+'</span><span class="mdr2"><span class="mdr1"><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b><em>'+pct(c.sc)+' %</em></span><small>'+mm(b.from)+'–'+mm(Math.min(b.to,1440))+'</small>'+(c.route&&c.route.length?'<span class="mdrt">📍 '+esc(mdRouteTxt(c).charAt(0).toUpperCase()+mdRouteTxt(c).slice(1))+'</span>':'')+mdWhyList(w)+'</span></button>';
   }).join('');
   var av=A.avoid.sort(function(a,b){return a.iso<b.iso?-1:1}).slice(0,3).map(function(c){
-    return '<button type="button" class="mdr bad" data-a="day" data-d="'+c.iso+'"><span class="mdn1">✕</span><span class="mdr2"><span class="mdr1"><b>'+esc(c.E.s.name)+' · '+esc(mdDayShort(c.iso))+'</b></span>'+mdWhyList([['no',c.txt]])+'</span></button>';
+    return '<button type="button" class="mdr bad" data-a="day" data-d="'+c.iso+'"><span class="mdn1">✕</span><span class="mdr2"><span class="mdr1"><b>'+esc(c.name)+' · '+esc(mdDayShort(c.iso))+'</b></span>'+mdWhyList([['no',c.txt]])+'</span></button>';
   }).join('');
   var ex='';
-  if(A.exp){var c=A.exp,cx=c.pr.ctx;ex='<button type="button" class="mdr exp" data-a="day" data-d="'+c.iso+'"><span class="mdn1">🧪</span><span class="mdr2"><span class="mdr1"><b>'+esc(c.E.s.name)+' · '+esc(mdDayShort(c.iso))+'</b></span>'+mdWhyList([['ok','Nunca has ido ahí '+(cx.ago===0?'el día del temporal':cx.ago+(cx.ago===1?' día':' días')+' tras '+num(cx.pk)+' m')],['ok','Si vas, apunta el color del agua: así el maestro aprende']])+'</span></button>'}
+  if(A.exp){var c=A.exp,cx=c.pr.ctx;ex='<button type="button" class="mdr exp" data-a="day" data-d="'+c.iso+'"><span class="mdn1">🧪</span><span class="mdr2"><span class="mdr1"><b>'+esc(c.name)+' · '+esc(mdDayShort(c.iso))+'</b></span>'+mdWhyList([['ok','Nunca has ido ahí '+(cx.ago===0?'el día del temporal':cx.ago+(cx.ago===1?' día':' días')+' tras '+num(cx.pk)+' m')],['ok','Si vas, apunta el color del agua: así el maestro aprende']])+'</span></button>'}
   return '<section class="card mdadv"><div class="hd"><b>🎓 El maestro dice</b><span class="hint">con tu previsión y tus salidas</span></div>'+
     (rows?'<h4 class="eyebrow">Mejores opciones</h4>'+rows:'<p class="hint">Ningún día de la previsión llega a un buen plan con tu receta.</p>')+(av?'<h4 class="eyebrow">Mejor no ir</h4>'+av:'')+(ex?'<h4 class="eyebrow">Para probar</h4>'+ex:'')+
     '<p class="hint mdfoot">Orienta, no decide. Cada motivo sale de tus visitas o de la previsión.</p></section>';
@@ -9140,6 +9175,7 @@ document.addEventListener('click',function(ev){
   b.classList.toggle('primary',on);b.setAttribute('aria-pressed',on);b.textContent=on?'🧪 Lo probaré en la próxima salida ✓':'🧪 Probar en la próxima salida';
 },true);
 (function(){var s=document.createElement('style');s.textContent=
+'.mdrt{display:block;margin:4px 0 2px;font:600 12.5px var(--body);color:var(--tide)}'+
 '.mdadv .hd,.agday .hd{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}.mdadv .hd b,.agday .hd b,.mdbh b{font:700 16px/1.2 var(--display)}'+
 '.mdadv h4.eyebrow,.mdbook h4.eyebrow{margin:14px 0 6px}.mdfoot{margin:10px 0 0}'+
 '.mdr{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:14px;padding:10px 12px;margin:6px 0;font:inherit}'+
@@ -10189,8 +10225,9 @@ function enPlan(){
 function enPlanHTML(){
   var P;try{P=enPlan()}catch(e){return ''}
   if(!P)return '';
-  var c=P.c,b=c.E.best,h='<section class="card enpl"><div class="hd"><b>🎯 Plan para la próxima</b><span class="hint">con tu previsión y tus salidas</span></div>';
-  h+='<div class="enpr"><span>Dónde y cuándo</span><b>'+esc(mdDayShort(c.iso))+' · '+esc(P.s.name)+'</b><small>'+mm(b.from)+' – '+mm(b.to)+'</small></div>';
+  var c=P.c,b=c.best,h='<section class="card enpl"><div class="hd"><b>🎯 Plan para la próxima</b><span class="hint">con tu previsión y tus salidas</span></div>';
+  h+='<div class="enpr"><span>Dónde y cuándo</span><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b><small>'+mm(b.from)+' – '+mm(b.to)+'</small></div>';
+  if(c.route&&c.route.length>1)h+='<div class="enpr"><span>Recorrido</span>'+c.route.map(function(x,i){return '<b>'+(i+1)+'. '+esc(x.E.s.name)+'</b><small>'+mm(x.from)+'–'+mm(Math.min(x.to,1440))+'</small>'}).join('')+'</div>';
   if(P.franja)h+='<div class="enpr"><span>Franja</span><b>'+esc(P.franja.best.t.charAt(0).toUpperCase()+P.franja.best.t.slice(1))+'</b><small>'+enR(P.franja.best.p.rate)+'/h · '+P.franja.best.p.n+' salidas</small></div>';
   if(P.cebo)h+='<div class="enpr"><span>Cebo</span><b>'+esc(P.cebo.best.t)+'</b><small>'+enR(P.cebo.best.p.rate)+'/h · '+P.cebo.best.p.n+' salidas</small></div>';
   if(P.mont&&P.mont.length)h+='<div class="enpr"><span>Montaje</span>'+P.mont.map(function(x){return '<b>'+esc(x[0])+'</b><small>'+esc(x[1])+'</small>'}).join('')+'<i class="spt pe">Guía de pescadores</i></div>';
@@ -10245,11 +10282,11 @@ function uiShort(t){return String(t||'').split(' (')[0]}
 function uiPlanTop(){
   var P=null,A=null;try{P=enPlan()}catch(e){}
   if(!P){try{A=mdAdvice()}catch(e){}if(!A||!A.top||!A.top.length)return null;var c=A.top[0];P={c:c,s:c.E.s}}
-  var c=P.c,b=c.E.best,tiles=[['🕖','Ventana',mm(b.from)+'–'+mm(b.to)]];
+  var c=P.c,b=c.best,tiles=[['🕖','Ventana',mm(b.from)+'–'+mm(b.to)]];
   if(P.franja)tiles.push(['🌅','Franja',uiShort(P.franja.best.t)]);
   if(P.cebo)tiles.push(['🪱','Cebo',P.cebo.best.t]);
   if(tiles.length<3&&P.mont&&P.mont[0])tiles.push(['🪝','Anzuelo',uiFirst(P.mont[0][1].split(';')[0],22)]);
-  var h='<section class="card pnext"><button type="button" class="pnh" data-a="day" data-d="'+c.iso+'"><span class="pni">🎯</span><span class="pnx"><small>Tu próxima salida</small><b>'+esc(mdDayShort(c.iso))+' · '+esc(P.s.name)+'</b></span><em class="pnsc">'+pct(c.sc)+'<u>%</u></em></button>'+
+  var h='<section class="card pnext"><button type="button" class="pnh" data-a="day" data-d="'+c.iso+'"><span class="pni">🎯</span><span class="pnx"><small>Tu próxima salida</small><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b>'+(c.route&&c.route.length>1?'<span class="pnr">'+c.route.map(function(x){return '<u>'+esc(x.E.s.name)+'</u><i>'+mm(x.from)+'</i>'}).join('<s>→</s>')+'</span>':'')+'</span><em class="pnsc">'+pct(c.sc)+'<u>%</u></em></button>'+
     '<div class="pnt">'+tiles.map(function(x){return '<div><i>'+x[0]+'</i><small>'+x[1]+'</small><b>'+esc(x[2])+'</b></div>'}).join('')+'</div>';
   return h;
 }
@@ -10285,7 +10322,8 @@ renderHoy=function(){
 '.uiacc{padding:0!important;overflow:hidden}.uiacc>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent}.uiacc>summary::-webkit-details-marker{display:none}'+
 '.uii{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:var(--accent-soft,rgba(58,208,200,.12));border:1px solid var(--line)}.uit{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.uit b{font:700 15px/1.25 var(--display)}.uit small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
 '.uic{flex:none;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 3px 0;transition:transform .2s}.uiacc[open]>summary .uic{transform:rotate(-135deg);margin-bottom:-3px}.uiacc[open]>summary{border-bottom:1px solid var(--line)}.uib{padding:12px 14px 14px}.uib>.flat{margin:0!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}'+
-'.pnext{display:block!important;border:1px solid rgba(58,208,200,.35);background:linear-gradient(155deg,rgba(58,208,200,.12),var(--surface) 65%);padding:0!important;overflow:hidden}.pnh{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:14px 14px 10px;cursor:pointer}.pni{flex:none;width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:21px;background:rgba(58,208,200,.16)}.pnx{flex:1;min-width:0;display:flex;flex-direction:column}.pnx small{font:700 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tide)}.pnx b{font:700 17px/1.25 var(--display)}'+
+'section.pnext{display:block!important;border:1px solid rgba(58,208,200,.35);background:linear-gradient(155deg,rgba(58,208,200,.12),var(--surface) 65%);padding:0!important;overflow:hidden}.pnh{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:14px 14px 10px;cursor:pointer}.pni{flex:none;width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:21px;background:rgba(58,208,200,.16)}.pnx{flex:1;min-width:0;display:flex;flex-direction:column}.pnx small{font:700 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tide)}.pnx b{font:700 17px/1.25 var(--display)}'+
+'.pnr{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;margin-top:3px;font:500 12px var(--body);color:var(--dim)}.pnr u{text-decoration:none;color:var(--text)}.pnr i{font:600 11px var(--mono);font-style:normal}.pnr s{text-decoration:none;color:var(--tide)}'+
 '.pnsc{font:800 22px var(--display);font-style:normal;color:var(--accent)}.pnsc u{font-size:12px;text-decoration:none;opacity:.7}.pnt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 14px}.pnt>div{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:14px;background:var(--surface2);border:1px solid var(--line);min-width:0}.pnt i{font-style:normal;font-size:18px}.pnt small{font:700 9.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}.pnt b{font:600 13px/1.25 var(--display);overflow-wrap:anywhere}'+
 '.pmore{border-top:1px solid var(--line)}.pmore>summary{list-style:none;padding:12px 14px;font:600 13px var(--display);color:var(--muted);cursor:pointer;display:flex;justify-content:space-between}.pmore>summary::-webkit-details-marker{display:none}.pmore>summary::after{content:"▾";transition:transform .2s}.pmore[open]>summary::after{transform:rotate(180deg)}.pmore>.flat{margin:0 14px 14px!important;padding:12px!important;border:1px solid var(--line)!important;border-radius:16px;background:var(--surface2)!important}'+
 '.psmd{margin:10px 0}.psmd>summary{list-style:none;cursor:pointer;font:600 12.5px var(--display);color:var(--muted);padding:6px 0}.psmd>summary::-webkit-details-marker{display:none}.psmd>summary::before{content:"▸ "}.psmd[open]>summary::before{content:"▾ "}';

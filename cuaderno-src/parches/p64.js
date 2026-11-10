@@ -53,8 +53,9 @@ function enPlan(){
 function enPlanHTML(){
   var P;try{P=enPlan()}catch(e){return ''}
   if(!P)return '';
-  var c=P.c,b=c.E.best,h='<section class="card enpl"><div class="hd"><b>🎯 Plan para la próxima</b><span class="hint">con tu previsión y tus salidas</span></div>';
-  h+='<div class="enpr"><span>Dónde y cuándo</span><b>'+esc(mdDayShort(c.iso))+' · '+esc(P.s.name)+'</b><small>'+mm(b.from)+' – '+mm(b.to)+'</small></div>';
+  var c=P.c,b=c.best,h='<section class="card enpl"><div class="hd"><b>🎯 Plan para la próxima</b><span class="hint">con tu previsión y tus salidas</span></div>';
+  h+='<div class="enpr"><span>Dónde y cuándo</span><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b><small>'+mm(b.from)+' – '+mm(b.to)+'</small></div>';
+  if(c.route&&c.route.length>1)h+='<div class="enpr"><span>Recorrido</span>'+c.route.map(function(x,i){return '<b>'+(i+1)+'. '+esc(x.E.s.name)+'</b><small>'+mm(x.from)+'–'+mm(Math.min(x.to,1440))+'</small>'}).join('')+'</div>';
   if(P.franja)h+='<div class="enpr"><span>Franja</span><b>'+esc(P.franja.best.t.charAt(0).toUpperCase()+P.franja.best.t.slice(1))+'</b><small>'+enR(P.franja.best.p.rate)+'/h · '+P.franja.best.p.n+' salidas</small></div>';
   if(P.cebo)h+='<div class="enpr"><span>Cebo</span><b>'+esc(P.cebo.best.t)+'</b><small>'+enR(P.cebo.best.p.rate)+'/h · '+P.cebo.best.p.n+' salidas</small></div>';
   if(P.mont&&P.mont.length)h+='<div class="enpr"><span>Montaje</span>'+P.mont.map(function(x){return '<b>'+esc(x[0])+'</b><small>'+esc(x[1])+'</small>'}).join('')+'<i class="spt pe">Guía de pescadores</i></div>';

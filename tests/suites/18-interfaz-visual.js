@@ -29,16 +29,16 @@ module.exports = {
       await t.goTab('hoy'); await t.wait(1400);
       const h = await H(t, '#main');
       t.ok('el Plan ya no es una lista eterna (menos de 3000 px con 7 días y 6 spots)', h > 0 && h < 3000, 'h=' + h);
-      const top = await t.page.evaluate(() => (document.querySelector('.pnext') || {}).textContent || '');
-      t.ok('«Tu próxima salida»: día, spot y %', /Tu próxima salida/i.test(top) && /Roca vieja/.test(top) && /\d+\s*%/.test(top), top.slice(0, 200));
-      t.ok('tres fichas: ventana, franja y cebo', (await t.N('.pnext .pnt > div')) === 3 && /Ventana/i.test(top) && /Franja/i.test(top) && /Cebo/i.test(top) && /Cangrejo/.test(top));
-      t.ok('veredicto del día antes que la recomendación', await t.page.evaluate(() => { const v = document.querySelector('.pverdict'), n = document.querySelector('.pnext'); return !!v && !!n && (v.compareDocumentPosition(n) & 4) > 0; }));
+      const top = await t.page.evaluate(() => (document.querySelector('section.pnext') || {}).textContent || '');
+      t.ok('«Tu próxima salida»: día, sitio y %', /Tu próxima salida/i.test(top) && /Matxitxako/.test(top) && /\d+\s*%/.test(top), top.slice(0, 200));
+      t.ok('tres fichas: ventana, franja y cebo', (await t.N('section.pnext .pnt > div')) === 3 && /Ventana/i.test(top) && /Franja/i.test(top) && /Cebo/i.test(top) && /Cangrejo/.test(top));
+      t.ok('veredicto del día antes que la recomendación', await t.page.evaluate(() => { const v = document.querySelector('.pverdict'), n = document.querySelector('section.pnext'); return !!v && !!n && (v.compareDocumentPosition(n) & 4) > 0; }));
       t.ok('condiciones y agua vienen plegadas con un resumen de una línea', (await t.N('details.uiacc[data-uk="pmet"]:not([open])')) === 1 && (await t.N('details.uiacc[data-uk="pagua"]:not([open])')) === 1);
       t.ok('las reglas de cada spot vienen plegadas', (await t.N('.psmd:not([open])')) >= 1 && (await t.N('.psmd[open]')) === 0);
       t.ok('sin NaN/undefined en el Plan', noJunk(await t.page.evaluate(() => document.getElementById('main').textContent)));
       await t.page.evaluate(() => document.getElementById('main').scrollTo({ top: 0, behavior: 'instant' })); await t.wait(300);
       await t.shot(SHP + 'ui-plan');
-      await scrollTo(t, '.pnext'); await t.wait(500); await t.shot(SHP + 'ui-plan-recomendacion');
+      await scrollTo(t, 'section.pnext'); await t.wait(500); await t.shot(SHP + 'ui-plan-recomendacion');
     });
     await t.case('Plan: al tocar se abre y se queda abierto', async () => {
       await t.page.evaluate(() => document.querySelector('[data-uk="pmet"] > summary').click()); await t.wait(500);
