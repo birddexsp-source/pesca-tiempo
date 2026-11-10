@@ -107,7 +107,46 @@ function mdSite(P,U){
   if(!best)return {rj:rj,ok:ok,none:true};
   var route=routeOf(ok,best).map(function(r){return {E:r.E.orig,sm:r.E.sm,from:r.from,to:r.to,avg:r.avg,sum:r.avg*(r.to-r.from)}});
   var lead=route.slice().sort(function(a,b){return b.sum-a.sum})[0];
-  return {rj:rj,ok:ok,best:best,route:route,lead:lead.E,sm:lead.sm,n:ok.length};
+  var open=ok.filter(function(E){var m=0;for(var j=best.a;j<best.b;j++)if(E.v[j]!=null&&E.v[j]>m)m=E.v[j];return m>=0.5}).map(function(E){return E.orig});
+  return {rj:rj,ok:ok,best:best,route:route,lead:lead.E,sm:lead.sm,n:ok.length,open:open,total:ok.length+rj.length};
+}
+/* experiencia del sitio: hasta dónde has pescado (ola y viento) y hasta dónde no */
+function mdMin(a,b){return a==null?b:b==null?a:Math.min(a,b)}
+function mdMax(a,b){return a==null?b:b==null?a:Math.max(a,b)}
+function mdSiteLearn(U){
+  var X={okLo:null,okHi:null,tooHigh:null,windOk:null,windTooMuch:null,last:null};
+  U.spots.forEach(function(E){
+    var L=spotLearn(E.s);
+    X.okLo=mdMin(X.okLo,L.okLo);X.okHi=mdMax(X.okHi,L.okHi);X.tooHigh=mdMin(X.tooHigh,L.tooHigh);
+    X.windOk=mdMax(X.windOk,L.windOk);X.windTooMuch=mdMin(X.windTooMuch,L.windTooMuch);
+    legsOfSpot(E.s.id).forEach(function(l){if(l.wave!=null&&l.wave!==''&&!isNaN(+l.wave)&&(!X.last||String(l.date)>String(X.last.date)))X.last=l});
+  });
+  return X;
+}
+function mdHyp(U,S,P){
+  /* previsión de la jornada frente a lo que ya has probado en este sitio */
+  var X=mdSiteLearn(U),b=S.best,out=[],W=P.C.slice(b.a,b.b),wv=[],dv=[];
+  W.forEach(function(c){if(c.wave!=null)wv.push(c.wave);if(c.wind!=null)dv.push(c.wind)});
+  if(!wv.length&&!dv.length)return out;
+  var wlo=Math.min.apply(null,wv),whi=Math.max.apply(null,wv),dhi=Math.max.apply(null,dv),wr=Math.abs(whi-wlo)<0.1?num(whi):num(wlo)+'–'+num(whi);
+  if(wv.length){
+    if(X.okHi==null)out.push({st:'x',k:'ola',txt:'Aún no has valorado la ola en este sitio',act:'Apunta si había poca, perfecta o demasiada'});
+    else if(X.tooHigh!=null&&whi>=X.tooHigh-0.05)out.push({st:'x',k:'ola',txt:'Ola de hasta '+num(whi)+' m: ya fue demasiado con '+num(X.tooHigh)+' m',act:'Entra solo en los tramos de menos mar'});
+    else if(whi>X.okHi+0.15)out.push({st:'x',k:'ola',txt:'Ola de hasta '+num(whi)+' m: más de lo máximo que has pescado aquí ('+num(X.okHi)+' m)'+(X.tooHigh!=null?', y menos de '+num(X.tooHigh)+' m, donde ya fue demasiado':'; aún no sabes dónde está el límite'),act:'Ve a comprobar hasta dónde se puede y apunta cómo estaba el mar'});
+    else if(X.okLo!=null&&whi<X.okLo-0.15)out.push({st:'x',k:'ola',txt:'Ola de solo '+num(whi)+' m: menos de lo que has pescado aquí (desde '+num(X.okLo)+' m)',act:'Comprueba si con tan poco mar merece la pena'});
+    else out.push({st:'ok',k:'ola',txt:'Ola '+wr+' m: dentro de lo que ya has pescado aquí'});
+  }
+  if(dv.length){
+    if(X.windTooMuch!=null&&dhi>=X.windTooMuch-1)out.push({st:'x',k:'viento',txt:'Viento de hasta '+num(dhi,0)+' kph: ya fue demasiado con '+num(X.windTooMuch,0),act:'Mejor las horas de menos viento'});
+    else if(X.windOk==null)out.push({st:'x',k:'viento',txt:'Aún no has valorado el viento en este sitio',act:'Apunta si había poco, perfecto o demasiado'});
+    else if(dhi>X.windOk+2)out.push({st:'x',k:'viento',txt:'Viento de hasta '+num(dhi,0)+' kph: más de lo que has aguantado aquí ('+num(X.windOk,0)+' kph)'+(X.windTooMuch!=null?', y menos de '+num(X.windTooMuch,0)+', donde ya fue demasiado':''),act:'Comprueba hasta cuánto viento se puede pescar'});
+    else out.push({st:'ok',k:'viento',txt:'Viento de hasta '+num(dhi,0)+' kph: dentro de lo que ya has pescado aquí'});
+  }
+  if(X.last&&wv.length){
+    var lw=+X.last.wave,mid=(wlo+whi)/2;
+    if(Math.abs(mid-lw)>=0.3)out.push({st:'x',k:'mar',txt:(mid>lw?'Más':'Menos')+' mar que la última vez ('+num(lw)+' → '+num(mid)+' m)',act:'Compara cómo pica con cada mar'});
+  }
+  return out;
 }
 function mdAdvice(){
   var fut=fcFuture().slice(0,9),C=[],avoid=[],R=agByLevel(legs),tot={s:0,h:0};
@@ -120,14 +159,18 @@ function mdAdvice(){
       if(S.none)return;
       var sc=S.best.avg,why=[],pr=agPredict(S.lead.s,f.date),bonus=0;
       if(pr.agua&&mean){var r=R[pr.agua],rt=r&&r.h>0?r.s/r.h:null;if(rt!=null){if(rt>=mean*1.2){bonus=0.08;why.push('con ese tipo de agua es cuando más pescas')}else if(rt<=mean*0.6){bonus=-0.08;why.push('con ese tipo de agua sueles pescar menos')}}}
-      C.push({iso:f.date,name:U.name,site:U.site,E:S.lead,best:S.best,route:S.route,rj:S.rj,n:S.n,sc:sc+bonus,sm:S.sm,pr:pr,why:why});
+      var hy=mdHyp(U,S,P),hrs=(S.best.to-S.best.from)/60,op=S.open.length;
+      var rk=(sc+bonus)*(0.7+0.3*Math.min(1,op/3))*(0.8+0.2*Math.min(1,hrs/6));
+      C.push({iso:f.date,name:U.name,site:U.site,E:S.lead,best:S.best,route:S.route,rj:S.rj,n:S.n,open:S.open,total:S.total,hrs:hrs,hyp:hy,rk:rk,sc:sc+bonus,sm:S.sm,pr:pr,why:why});
     });
   });
-  var best={};C.filter(function(c){return c.sc>=0.5}).sort(function(a,b){return b.sc-a.sc}).forEach(function(c){if(!best[c.iso])best[c.iso]=c});
-  var top=Object.keys(best).map(function(k){return best[k]}).sort(function(a,b){return b.sc-a.sc}).slice(0,3);
+  var best={};C.filter(function(c){return c.sc>=0.5}).sort(function(a,b){return b.rk-a.rk}).forEach(function(c){if(!best[c.iso])best[c.iso]=c});
+  var top=Object.keys(best).map(function(k){return best[k]}).sort(function(a,b){return b.rk-a.rk}).slice(0,3);
   var exp=C.filter(function(c){return c.sm.st==='ok'&&c.pr&&c.pr.none&&c.pr.ctx&&c.pr.ctx.pk>=AGST}).sort(function(a,b){return b.sc-a.sc})[0];
   return {top:top,avoid:avoid,exp:exp};
 }
+function mdSpotsTxt(c){return c.open.length+' de '+c.total+(c.total===1?' spot':' spots')}
+function mdHypItems(c){return (c.hyp||[]).map(function(h){return h.st==='ok'?['ok',h.txt]:['warn','🧪 '+h.txt+'. '+h.act]})}
 /* recorrido del sitio: «Empieza en A → luego B» (cada tramo con su hora) */
 function mdRouteTxt(c){
   var r=c.route||[];if(!r.length)return '';
@@ -139,13 +182,13 @@ function mdAdviceHTML(){
   var A;try{A=mdAdvice()}catch(e){return ''}
   if(!A.top.length&&!A.avoid.length&&!A.exp)return '';
   var rows=A.top.map(function(c,i){
-    var b=c.best,w=[];
+    var b=c.best,w=mdHypItems(c);
     if(c.sm.st==='ok'||c.sm.st==='am')w.push([c.sm.st==='ok'?'ok':'warn',c.sm.txt]);
     if(c.pr&&c.pr.agua)w.push(['ok','Agua probable '+agName(c.pr.agua).toLowerCase()+' ('+(c.pr.ctx.pk>=AGST?(c.pr.ctx.ago===0?'temporal hoy':c.pr.ctx.ago+(c.pr.ctx.ago===1?' día':' días')+' tras '+num(c.pr.ctx.pk)+' m'):'sin temporal reciente')+')']);
     c.why.forEach(function(x){w.push([/genérica/.test(x)?'warn':'ok',x.charAt(0).toUpperCase()+x.slice(1)])});
     (c.route||[]).filter(function(x,j,a){return x.sm.st==='nd'&&a.indexOf(x)===j}).forEach(function(x){w.push(['warn',x.E.s.name+': aún sin visitas valoradas, puntuación genérica'])});
     (c.rj||[]).forEach(function(x){w.push(['no','No cuentes con '+x.E.s.name+': '+x.txt])});
-    return '<button type="button" class="mdr" data-a="day" data-d="'+c.iso+'"><span class="mdn1">'+(i+1)+'</span><span class="mdr2"><span class="mdr1"><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b><em>'+pct(c.sc)+' %</em></span><small>'+mm(b.from)+'–'+mm(Math.min(b.to,1440))+'</small>'+(c.route&&c.route.length?'<span class="mdrt">📍 '+esc(mdRouteTxt(c).charAt(0).toUpperCase()+mdRouteTxt(c).slice(1))+'</span>':'')+mdWhyList(w)+'</span></button>';
+    return '<button type="button" class="mdr" data-a="day" data-d="'+c.iso+'"><span class="mdn1">'+(i+1)+'</span><span class="mdr2"><span class="mdr1"><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b><em>'+esc(mdSpotsTxt(c))+'</em></span><small>'+mm(b.from)+'–'+mm(Math.min(b.to,1440))+' · '+num(c.hrs,0)+' h de jornada</small>'+(c.route&&c.route.length?'<span class="mdrt">📍 '+esc(mdRouteTxt(c).charAt(0).toUpperCase()+mdRouteTxt(c).slice(1))+'</span>':'')+mdWhyList(w)+'</span></button>';
   }).join('');
   var av=A.avoid.sort(function(a,b){return a.iso<b.iso?-1:1}).slice(0,3).map(function(c){
     return '<button type="button" class="mdr bad" data-a="day" data-d="'+c.iso+'"><span class="mdn1">✕</span><span class="mdr2"><span class="mdr1"><b>'+esc(c.name)+' · '+esc(mdDayShort(c.iso))+'</b></span>'+mdWhyList([['no',c.txt]])+'</span></button>';

@@ -30,7 +30,7 @@ module.exports = {
       const h = await H(t, '#main');
       t.ok('el Plan ya no es una lista eterna (menos de 3000 px con 7 días y 6 spots)', h > 0 && h < 3000, 'h=' + h);
       const top = await t.page.evaluate(() => (document.querySelector('section.pnext') || {}).textContent || '');
-      t.ok('«Tu próxima salida»: día, sitio y %', /Tu próxima salida/i.test(top) && /Matxitxako/.test(top) && /\d+\s*%/.test(top), top.slice(0, 200));
+      t.ok('«Tu próxima salida»: día, sitio y spots abiertos', /Tu próxima salida/i.test(top) && /Matxitxako/.test(top) && /\d+\s*de\s*\d+ spots/.test(top), top.slice(0, 200));
       t.ok('tres fichas: ventana, franja y cebo', (await t.N('section.pnext .pnt > div')) === 3 && /Ventana/i.test(top) && /Franja/i.test(top) && /Cebo/i.test(top) && /Cangrejo/.test(top));
       t.ok('veredicto del día antes que la recomendación', await t.page.evaluate(() => { const v = document.querySelector('.pverdict'), n = document.querySelector('section.pnext'); return !!v && !!n && (v.compareDocumentPosition(n) & 4) > 0; }));
       t.ok('condiciones y agua vienen plegadas con un resumen de una línea', (await t.N('details.uiacc[data-uk="pmet"]:not([open])')) === 1 && (await t.N('details.uiacc[data-uk="pagua"]:not([open])')) === 1);

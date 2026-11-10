@@ -29,9 +29,9 @@ module.exports = {
       await t.goTab('hoy'); await t.wait(1400);
       const top = await txt(t, 'section.pnext');
       t.ok('«Tu próxima salida» nombra el sitio, no un spot suelto', /Tu próxima salida/i.test(top) && /Cala Brava/.test(top) && !/ · Abrigo|· Punta expuesta/.test(top.split('Ventana')[0]), top.slice(0, 220));
-      const orden = await t.page.evaluate(() => [].map.call(document.querySelectorAll('section.pnext .pnr u'), (u) => u.textContent));
+      const orden = await t.page.evaluate(() => [].map.call(document.querySelectorAll('section.pnext .pnr .pna'), (u) => u.firstChild.textContent.trim()));
       t.ok('empieza en el spot abrigado (mar en calma) y sigue en el expuesto (con olas)', orden.length === 2 && orden[0] === 'Abrigo' && orden[1] === 'Punta expuesta', JSON.stringify(orden));
-      const horas = await t.page.evaluate(() => [].map.call(document.querySelectorAll('section.pnext .pnr i'), (i) => i.textContent));
+      const horas = await t.page.evaluate(() => [].map.call(document.querySelectorAll('section.pnext .pnr .pnh2'), (i) => i.textContent));
       t.ok('cada tramo lleva su hora y van de menos a más', horas.length === 2 && horas[0] < horas[1], JSON.stringify(horas));
       const adv = await txt(t, '.mdadv');
       t.ok('«El maestro dice» muestra el recorrido «Empieza en … → luego …»', /Cala Brava/.test(adv) && /Empieza en Abrigo \d\d:\d\d–\d\d:\d\d → luego Punta expuesta/.test(adv), adv.slice(0, 300));
@@ -40,6 +40,23 @@ module.exports = {
       t.ok('un spot por descubrir no entra en el recorrido', !/Cala virgen/.test(top) && !/Empieza en[^→]*Cala virgen/.test(adv) && !/→ luego Cala virgen/.test(adv));
       t.ok('sin NaN ni undefined', !/NaN|undefined|\[object/.test(top + adv + pl));
       await t.shot(SHP + 'plan-por-sitio');
+    });
+    await t.case('Spots abiertos con este mar y qué investigar (zonas sin probar)', async () => {
+      const top = await txt(t, 'section.pnext');
+      t.ok('en vez de un %, dice cuántos spots están abiertos', /2\s*de 2 spots/.test(top) && !/\d+\s*%/.test(top), top.slice(0, 200));
+      t.ok('«Qué investigar»: más mar que lo máximo probado, con qué hacer', /Qué investigar/.test(top) && /Ola de hasta [\d,]+ m: más de lo máximo que has pescado aquí \(1(,0)? m\)/.test(top) && /Ve a comprobar hasta dónde se puede/.test(top), top.slice(0, 500));
+      const adv = await txt(t, '.mdadv');
+      t.ok('el viento dentro de lo probado se dice como tal', /Viento de hasta 8 kph: dentro de lo que ya has pescado aquí/.test(adv), adv.slice(0, 500));
+      t.ok('compara con la última vez («más mar que…»)', /Más mar que la última vez \(1(,0)? → /.test(adv), adv.slice(0, 500));
+      t.ok('la jornada se cuenta en horas', /\d+ h de jornada/.test(adv));
+      await t.page.evaluate(() => { const m = document.getElementById('main'), e = document.querySelector('section.pnext'); if (m && e) m.scrollTo({ top: m.scrollTop + e.getBoundingClientRect().top - 70, behavior: 'instant' }); }); await t.wait(400);
+      await t.shot(SHP + 'plan-que-investigar');
+    });
+    await t.case('Si la previsión cae en lo ya probado, lo dice y no manda investigar', async () => {
+      for (let i = 0; i <= 7; i++) await t.put('forecast', iso(i), { date: iso(i), point: 'test', src: 'test', samples: [1, 4, 7, 10, 13, 16, 19, 22].map((h) => ({ h, wave: 0.9, period: 9, wind: 8, gust: 12 })), tides: [] });
+      await t.wait(900); await t.reload(); await t.wait(1800); await t.goTab('hoy'); await t.wait(1200);
+      const top = await txt(t, 'section.pnext');
+      t.ok('«Dentro de lo que ya has pescado aquí», sin «Qué investigar»', /Dentro de lo que ya has pescado aquí/.test(top) && !/Qué investigar/.test(top), top.slice(0, 400));
     });
     await t.case('Un día malo para todo el sitio sale en «Mejor no ir» con el spot que falla', async () => {
       await t.put('forecast', iso(3), { date: iso(3), point: 'test', src: 'test', samples: [1, 4, 7, 10, 13, 16, 19, 22].map((h) => ({ h, wave: 4.5, period: 9, wind: 40, gust: 55 })), tides: [] });

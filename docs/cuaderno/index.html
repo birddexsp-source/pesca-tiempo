@@ -9078,7 +9078,46 @@ function mdSite(P,U){
   if(!best)return {rj:rj,ok:ok,none:true};
   var route=routeOf(ok,best).map(function(r){return {E:r.E.orig,sm:r.E.sm,from:r.from,to:r.to,avg:r.avg,sum:r.avg*(r.to-r.from)}});
   var lead=route.slice().sort(function(a,b){return b.sum-a.sum})[0];
-  return {rj:rj,ok:ok,best:best,route:route,lead:lead.E,sm:lead.sm,n:ok.length};
+  var open=ok.filter(function(E){var m=0;for(var j=best.a;j<best.b;j++)if(E.v[j]!=null&&E.v[j]>m)m=E.v[j];return m>=0.5}).map(function(E){return E.orig});
+  return {rj:rj,ok:ok,best:best,route:route,lead:lead.E,sm:lead.sm,n:ok.length,open:open,total:ok.length+rj.length};
+}
+/* experiencia del sitio: hasta dónde has pescado (ola y viento) y hasta dónde no */
+function mdMin(a,b){return a==null?b:b==null?a:Math.min(a,b)}
+function mdMax(a,b){return a==null?b:b==null?a:Math.max(a,b)}
+function mdSiteLearn(U){
+  var X={okLo:null,okHi:null,tooHigh:null,windOk:null,windTooMuch:null,last:null};
+  U.spots.forEach(function(E){
+    var L=spotLearn(E.s);
+    X.okLo=mdMin(X.okLo,L.okLo);X.okHi=mdMax(X.okHi,L.okHi);X.tooHigh=mdMin(X.tooHigh,L.tooHigh);
+    X.windOk=mdMax(X.windOk,L.windOk);X.windTooMuch=mdMin(X.windTooMuch,L.windTooMuch);
+    legsOfSpot(E.s.id).forEach(function(l){if(l.wave!=null&&l.wave!==''&&!isNaN(+l.wave)&&(!X.last||String(l.date)>String(X.last.date)))X.last=l});
+  });
+  return X;
+}
+function mdHyp(U,S,P){
+  /* previsión de la jornada frente a lo que ya has probado en este sitio */
+  var X=mdSiteLearn(U),b=S.best,out=[],W=P.C.slice(b.a,b.b),wv=[],dv=[];
+  W.forEach(function(c){if(c.wave!=null)wv.push(c.wave);if(c.wind!=null)dv.push(c.wind)});
+  if(!wv.length&&!dv.length)return out;
+  var wlo=Math.min.apply(null,wv),whi=Math.max.apply(null,wv),dhi=Math.max.apply(null,dv),wr=Math.abs(whi-wlo)<0.1?num(whi):num(wlo)+'–'+num(whi);
+  if(wv.length){
+    if(X.okHi==null)out.push({st:'x',k:'ola',txt:'Aún no has valorado la ola en este sitio',act:'Apunta si había poca, perfecta o demasiada'});
+    else if(X.tooHigh!=null&&whi>=X.tooHigh-0.05)out.push({st:'x',k:'ola',txt:'Ola de hasta '+num(whi)+' m: ya fue demasiado con '+num(X.tooHigh)+' m',act:'Entra solo en los tramos de menos mar'});
+    else if(whi>X.okHi+0.15)out.push({st:'x',k:'ola',txt:'Ola de hasta '+num(whi)+' m: más de lo máximo que has pescado aquí ('+num(X.okHi)+' m)'+(X.tooHigh!=null?', y menos de '+num(X.tooHigh)+' m, donde ya fue demasiado':'; aún no sabes dónde está el límite'),act:'Ve a comprobar hasta dónde se puede y apunta cómo estaba el mar'});
+    else if(X.okLo!=null&&whi<X.okLo-0.15)out.push({st:'x',k:'ola',txt:'Ola de solo '+num(whi)+' m: menos de lo que has pescado aquí (desde '+num(X.okLo)+' m)',act:'Comprueba si con tan poco mar merece la pena'});
+    else out.push({st:'ok',k:'ola',txt:'Ola '+wr+' m: dentro de lo que ya has pescado aquí'});
+  }
+  if(dv.length){
+    if(X.windTooMuch!=null&&dhi>=X.windTooMuch-1)out.push({st:'x',k:'viento',txt:'Viento de hasta '+num(dhi,0)+' kph: ya fue demasiado con '+num(X.windTooMuch,0),act:'Mejor las horas de menos viento'});
+    else if(X.windOk==null)out.push({st:'x',k:'viento',txt:'Aún no has valorado el viento en este sitio',act:'Apunta si había poco, perfecto o demasiado'});
+    else if(dhi>X.windOk+2)out.push({st:'x',k:'viento',txt:'Viento de hasta '+num(dhi,0)+' kph: más de lo que has aguantado aquí ('+num(X.windOk,0)+' kph)'+(X.windTooMuch!=null?', y menos de '+num(X.windTooMuch,0)+', donde ya fue demasiado':''),act:'Comprueba hasta cuánto viento se puede pescar'});
+    else out.push({st:'ok',k:'viento',txt:'Viento de hasta '+num(dhi,0)+' kph: dentro de lo que ya has pescado aquí'});
+  }
+  if(X.last&&wv.length){
+    var lw=+X.last.wave,mid=(wlo+whi)/2;
+    if(Math.abs(mid-lw)>=0.3)out.push({st:'x',k:'mar',txt:(mid>lw?'Más':'Menos')+' mar que la última vez ('+num(lw)+' → '+num(mid)+' m)',act:'Compara cómo pica con cada mar'});
+  }
+  return out;
 }
 function mdAdvice(){
   var fut=fcFuture().slice(0,9),C=[],avoid=[],R=agByLevel(legs),tot={s:0,h:0};
@@ -9091,14 +9130,18 @@ function mdAdvice(){
       if(S.none)return;
       var sc=S.best.avg,why=[],pr=agPredict(S.lead.s,f.date),bonus=0;
       if(pr.agua&&mean){var r=R[pr.agua],rt=r&&r.h>0?r.s/r.h:null;if(rt!=null){if(rt>=mean*1.2){bonus=0.08;why.push('con ese tipo de agua es cuando más pescas')}else if(rt<=mean*0.6){bonus=-0.08;why.push('con ese tipo de agua sueles pescar menos')}}}
-      C.push({iso:f.date,name:U.name,site:U.site,E:S.lead,best:S.best,route:S.route,rj:S.rj,n:S.n,sc:sc+bonus,sm:S.sm,pr:pr,why:why});
+      var hy=mdHyp(U,S,P),hrs=(S.best.to-S.best.from)/60,op=S.open.length;
+      var rk=(sc+bonus)*(0.7+0.3*Math.min(1,op/3))*(0.8+0.2*Math.min(1,hrs/6));
+      C.push({iso:f.date,name:U.name,site:U.site,E:S.lead,best:S.best,route:S.route,rj:S.rj,n:S.n,open:S.open,total:S.total,hrs:hrs,hyp:hy,rk:rk,sc:sc+bonus,sm:S.sm,pr:pr,why:why});
     });
   });
-  var best={};C.filter(function(c){return c.sc>=0.5}).sort(function(a,b){return b.sc-a.sc}).forEach(function(c){if(!best[c.iso])best[c.iso]=c});
-  var top=Object.keys(best).map(function(k){return best[k]}).sort(function(a,b){return b.sc-a.sc}).slice(0,3);
+  var best={};C.filter(function(c){return c.sc>=0.5}).sort(function(a,b){return b.rk-a.rk}).forEach(function(c){if(!best[c.iso])best[c.iso]=c});
+  var top=Object.keys(best).map(function(k){return best[k]}).sort(function(a,b){return b.rk-a.rk}).slice(0,3);
   var exp=C.filter(function(c){return c.sm.st==='ok'&&c.pr&&c.pr.none&&c.pr.ctx&&c.pr.ctx.pk>=AGST}).sort(function(a,b){return b.sc-a.sc})[0];
   return {top:top,avoid:avoid,exp:exp};
 }
+function mdSpotsTxt(c){return c.open.length+' de '+c.total+(c.total===1?' spot':' spots')}
+function mdHypItems(c){return (c.hyp||[]).map(function(h){return h.st==='ok'?['ok',h.txt]:['warn','🧪 '+h.txt+'. '+h.act]})}
 /* recorrido del sitio: «Empieza en A → luego B» (cada tramo con su hora) */
 function mdRouteTxt(c){
   var r=c.route||[];if(!r.length)return '';
@@ -9110,13 +9153,13 @@ function mdAdviceHTML(){
   var A;try{A=mdAdvice()}catch(e){return ''}
   if(!A.top.length&&!A.avoid.length&&!A.exp)return '';
   var rows=A.top.map(function(c,i){
-    var b=c.best,w=[];
+    var b=c.best,w=mdHypItems(c);
     if(c.sm.st==='ok'||c.sm.st==='am')w.push([c.sm.st==='ok'?'ok':'warn',c.sm.txt]);
     if(c.pr&&c.pr.agua)w.push(['ok','Agua probable '+agName(c.pr.agua).toLowerCase()+' ('+(c.pr.ctx.pk>=AGST?(c.pr.ctx.ago===0?'temporal hoy':c.pr.ctx.ago+(c.pr.ctx.ago===1?' día':' días')+' tras '+num(c.pr.ctx.pk)+' m'):'sin temporal reciente')+')']);
     c.why.forEach(function(x){w.push([/genérica/.test(x)?'warn':'ok',x.charAt(0).toUpperCase()+x.slice(1)])});
     (c.route||[]).filter(function(x,j,a){return x.sm.st==='nd'&&a.indexOf(x)===j}).forEach(function(x){w.push(['warn',x.E.s.name+': aún sin visitas valoradas, puntuación genérica'])});
     (c.rj||[]).forEach(function(x){w.push(['no','No cuentes con '+x.E.s.name+': '+x.txt])});
-    return '<button type="button" class="mdr" data-a="day" data-d="'+c.iso+'"><span class="mdn1">'+(i+1)+'</span><span class="mdr2"><span class="mdr1"><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b><em>'+pct(c.sc)+' %</em></span><small>'+mm(b.from)+'–'+mm(Math.min(b.to,1440))+'</small>'+(c.route&&c.route.length?'<span class="mdrt">📍 '+esc(mdRouteTxt(c).charAt(0).toUpperCase()+mdRouteTxt(c).slice(1))+'</span>':'')+mdWhyList(w)+'</span></button>';
+    return '<button type="button" class="mdr" data-a="day" data-d="'+c.iso+'"><span class="mdn1">'+(i+1)+'</span><span class="mdr2"><span class="mdr1"><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b><em>'+esc(mdSpotsTxt(c))+'</em></span><small>'+mm(b.from)+'–'+mm(Math.min(b.to,1440))+' · '+num(c.hrs,0)+' h de jornada</small>'+(c.route&&c.route.length?'<span class="mdrt">📍 '+esc(mdRouteTxt(c).charAt(0).toUpperCase()+mdRouteTxt(c).slice(1))+'</span>':'')+mdWhyList(w)+'</span></button>';
   }).join('');
   var av=A.avoid.sort(function(a,b){return a.iso<b.iso?-1:1}).slice(0,3).map(function(c){
     return '<button type="button" class="mdr bad" data-a="day" data-d="'+c.iso+'"><span class="mdn1">✕</span><span class="mdr2"><span class="mdr1"><b>'+esc(c.name)+' · '+esc(mdDayShort(c.iso))+'</b></span>'+mdWhyList([['no',c.txt]])+'</span></button>';
@@ -10286,8 +10329,11 @@ function uiPlanTop(){
   if(P.franja)tiles.push(['🌅','Franja',uiShort(P.franja.best.t)]);
   if(P.cebo)tiles.push(['🪱','Cebo',P.cebo.best.t]);
   if(tiles.length<3&&P.mont&&P.mont[0])tiles.push(['🪝','Anzuelo',uiFirst(P.mont[0][1].split(';')[0],22)]);
-  var h='<section class="card pnext"><button type="button" class="pnh" data-a="day" data-d="'+c.iso+'"><span class="pni">🎯</span><span class="pnx"><small>Tu próxima salida</small><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b>'+(c.route&&c.route.length>1?'<span class="pnr">'+c.route.map(function(x){return '<u>'+esc(x.E.s.name)+'</u><i>'+mm(x.from)+'</i>'}).join('<s>→</s>')+'</span>':'')+'</span><em class="pnsc">'+pct(c.sc)+'<u>%</u></em></button>'+
+  var h='<section class="card pnext"><button type="button" class="pnh" data-a="day" data-d="'+c.iso+'"><span class="pni">🎯</span><span class="pnx"><small>Tu próxima salida</small><b>'+esc(mdDayShort(c.iso))+' · '+esc(c.name)+'</b>'+(c.route&&c.route.length>1?'<span class="pnr">'+c.route.map(function(x){return '<span class="pna">'+esc(x.E.s.name)+' <span class="pnh2">'+mm(x.from)+'</span></span>'}).join('<span class="pns">→</span>')+'</span>':'')+'</span><em class="pnsc">'+c.open.length+'<u>de '+c.total+' spots</u></em></button>'+
     '<div class="pnt">'+tiles.map(function(x){return '<div><i>'+x[0]+'</i><small>'+x[1]+'</small><b>'+esc(x[2])+'</b></div>'}).join('')+'</div>';
+  var hy=c.hyp||[],hx=hy.filter(function(x){return x.st!=='ok'}).slice(0,2);
+  if(hx.length)h+='<div class="pnq"><b>🧪 Qué investigar</b>'+hx.map(function(x){return '<p>'+esc(x.txt)+'. <em>'+esc(x.act)+'</em></p>'}).join('')+'</div>';
+  else if(hy.length)h+='<div class="pnq ok"><b>✅ Dentro de lo que ya has pescado aquí</b><p>'+esc(hy.map(function(x){return x.txt}).join(' · '))+'</p></div>';
   return h;
 }
 var _rh65=renderHoy;
@@ -10323,7 +10369,8 @@ renderHoy=function(){
 '.uii{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:var(--accent-soft,rgba(58,208,200,.12));border:1px solid var(--line)}.uit{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.uit b{font:700 15px/1.25 var(--display)}.uit small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
 '.uic{flex:none;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 3px 0;transition:transform .2s}.uiacc[open]>summary .uic{transform:rotate(-135deg);margin-bottom:-3px}.uiacc[open]>summary{border-bottom:1px solid var(--line)}.uib{padding:12px 14px 14px}.uib>.flat{margin:0!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}'+
 'section.pnext{display:block!important;border:1px solid rgba(58,208,200,.35);background:linear-gradient(155deg,rgba(58,208,200,.12),var(--surface) 65%);padding:0!important;overflow:hidden}.pnh{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:14px 14px 10px;cursor:pointer}.pni{flex:none;width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:21px;background:rgba(58,208,200,.16)}.pnx{flex:1;min-width:0;display:flex;flex-direction:column}.pnx small{font:700 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tide)}.pnx b{font:700 17px/1.25 var(--display)}'+
-'.pnr{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;margin-top:3px;font:500 12px var(--body);color:var(--dim)}.pnr u{text-decoration:none;color:var(--text)}.pnr i{font:600 11px var(--mono);font-style:normal}.pnr s{text-decoration:none;color:var(--tide)}'+
+'.pnq{padding:10px 14px 12px;border-top:1px solid var(--line);display:grid;gap:4px}.pnq b{font:700 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--warn,#f2b84b)}.pnq.ok b{color:var(--ok)}.pnq p{font:500 13.5px/1.35 var(--body);color:var(--text)}.pnq em{font-style:normal;color:var(--dim)}'+
+'.pnr{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;margin-top:3px;font:500 12px var(--body);color:var(--dim)}.pnr .pna{color:var(--text)}.pnr .pnh2{font:600 11px var(--mono);color:var(--dim)}.pnr .pns{color:var(--tide)}'+
 '.pnsc{font:800 22px var(--display);font-style:normal;color:var(--accent)}.pnsc u{font-size:12px;text-decoration:none;opacity:.7}.pnt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 14px}.pnt>div{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:14px;background:var(--surface2);border:1px solid var(--line);min-width:0}.pnt i{font-style:normal;font-size:18px}.pnt small{font:700 9.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}.pnt b{font:600 13px/1.25 var(--display);overflow-wrap:anywhere}'+
 '.pmore{border-top:1px solid var(--line)}.pmore>summary{list-style:none;padding:12px 14px;font:600 13px var(--display);color:var(--muted);cursor:pointer;display:flex;justify-content:space-between}.pmore>summary::-webkit-details-marker{display:none}.pmore>summary::after{content:"▾";transition:transform .2s}.pmore[open]>summary::after{transform:rotate(180deg)}.pmore>.flat{margin:0 14px 14px!important;padding:12px!important;border:1px solid var(--line)!important;border-radius:16px;background:var(--surface2)!important}'+
 '.psmd{margin:10px 0}.psmd>summary{list-style:none;cursor:pointer;font:600 12.5px var(--display);color:var(--muted);padding:6px 0}.psmd>summary::-webkit-details-marker{display:none}.psmd>summary::before{content:"▸ "}.psmd[open]>summary::before{content:"▾ "}';
