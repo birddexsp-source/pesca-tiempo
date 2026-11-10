@@ -38,7 +38,7 @@ function qrUnit(q,ref,kind,step){
   if(q.o.length)h+='<div class="qrc n'+(q.o.length%3===0||q.o.length>4?3:2)+'">'+q.o.map(function(o){return '<button type="button" class="qro'+(a.a===o[0]?' on':'')+'" data-a="qr-a" data-ref="'+k+'" data-q="'+i+'" data-v="'+esc(o[0])+'" aria-pressed="'+(a.a===o[0])+'"><span class="qe">'+(o[2]||'')+'</span><span>'+esc(o[1])+'</span></button>'}).join('')+'</div>';
   h+='<div class="qrv">';
   if(rec)h+='<button type="button" class="qrm rec" data-a="qr-rec" data-ref="'+k+'" data-q="'+i+'"><span class="rdot"></span> Grabando · toca para parar</button>';
-  else h+='<button type="button" class="qrm" data-a="qr-rec" data-ref="'+k+'" data-q="'+i+'">🎙 '+(a.audio?'Grabar otra':'Contestar con voz')+'</button>'+(qrDictOK()?'<button type="button" class="qrm" data-a="qr-dict" data-ref="'+k+'" data-q="'+i+'">🗣 Dictar</button>':'');
+  else h+='<button type="button" class="qrm" data-a="qr-rec" data-ref="'+k+'" data-q="'+i+'">🎙 '+(a.audio?'Otra vez':'Voz')+'</button>'+(qrDictOK()?'<button type="button" class="qrm" data-a="qr-dict" data-ref="'+k+'" data-q="'+i+'">🗣 Dictar</button>':'');
   h+='</div>';
   if(a.audio){var u=audSrc(a.audio);h+=u?'<audio controls preload="none" src="'+u+'"></audio>':'<small class="hint">🎙 audio guardado</small>'}
   if(q.open||a.txt)h+='<textarea class="qrt" data-qrt="'+i+'" data-ref="'+k+'" placeholder="O escríbelo aquí…" rows="2">'+esc(a.txt||'')+'</textarea>';

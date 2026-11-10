@@ -62,7 +62,7 @@ module.exports = {
       await t.page.evaluate(() => { window.__t = 1; });
       await t.page.evaluate(() => { const b = document.createElement('button'); b.setAttribute('data-a', 'open-spot'); b.setAttribute('data-id', 'eB'); document.body.appendChild(b); b.click(); b.remove(); });
       await t.wait(900);
-      let r = await t.T('#sheetbody');
+      let r = await t.page.evaluate(() => document.getElementById('sheetbody').textContent.replace(/\s+/g, ' '));
       if (!/Receta/.test(r)) { /* abre la ficha con la función global del app si existe el botón de la lista */ }
       t.ok('la ficha del spot tiene receta con cebo, agua y fiabilidad', /Receta de/.test(r) && /Mejillón|Cangrejo/.test(r) && /Fiabilidad/.test(r), r.slice(0, 500));
       t.ok('receta sin NaN', !/NaN|undefined/.test(r));
@@ -71,7 +71,7 @@ module.exports = {
     await t.case('Plan concreto y pistas descubiertas en Hoy', async () => {
       await t.page.evaluate(() => { const c = document.getElementById('sheet'); const b = document.querySelector('[data-a="close-sheet"]'); b && b.click(); });
       await t.goTab('hoy'); await t.wait(1400);
-      const p = await t.T('.enpl');
+      const p = await t.page.evaluate(() => document.querySelector('.enpl').textContent.replace(/\s+/g, ' '));
       t.ok('plan: dónde y cuándo, cebo y franja salen de tus datos', /Plan para la próxima/.test(p) && /Dónde y cuándo/i.test(p) && /Cangrejo/.test(p), p.slice(0, 400));
       t.ok('plan sin NaN', !/NaN|undefined/.test(p));
       await t.page.evaluate(() => document.querySelector('.enpl').scrollIntoView({ block: 'start', behavior: 'instant' })); await t.wait(300);
@@ -80,8 +80,7 @@ module.exports = {
       const d = await t.page.evaluate(() => document.querySelector('.endisc').textContent);
       t.ok('pistas: patrón con cifras y fiabilidad', /Pistas descubiertas/.test(d) && /peces\/h/.test(d) && /Consistente|Prometedora|Muy poca base/.test(d), d.slice(0, 500));
       t.ok('pistas sin NaN', !/NaN|undefined/.test(d));
-      console.log('RECT', JSON.stringify(await t.page.evaluate(() => [document.querySelector('.endisc').getBoundingClientRect().top, scrollY, [...document.querySelectorAll('*')].filter(e => e.scrollTop > 0).map(e => e.tagName + '#' + e.id + '.' + e.className + ':' + e.scrollTop)]))); await t.shot(SHP + 'pistas-descubiertas');
-      await t.page.evaluate(() => document.querySelector('.endisc [data-a="md-probar"]').click()); await t.wait(900);
+            await t.page.evaluate(() => document.querySelector('.endisc [data-a="md-probar"]').click()); await t.wait(900);
       const h = (await t.docs('hipotesis')).filter(x => /^d_/.test(x.id) && x.probar);
       t.ok('«Probar en la próxima salida» guarda la pista', h.length === 1, JSON.stringify(h));
       await t.goTab('salidas'); await t.goTab('hoy'); await t.wait(900);

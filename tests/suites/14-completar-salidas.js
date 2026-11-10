@@ -14,8 +14,8 @@ module.exports = {
     await t.wait(900); await t.reload(); await t.wait(1500);
     await t.case('Ajustes: bloque con lo que falta', async () => {
       await t.tap('[data-a="open-settings"]', 700);
-      const b = await t.T('#cmblk');
-      t.ok('aparece «Completar salidas anteriores» arriba de todo', /Completar salidas anteriores/.test(b) && (await t.page.evaluate(() => document.getElementById('sheetbody').firstElementChild.id)) === 'cmblk', b);
+      const b = await t.page.evaluate(() => document.getElementById('cmblk').parentElement.parentElement.textContent.replace(/\s+/g, ' '));
+      t.ok('aparece «Completar salidas anteriores» arriba de todo', /Completar salidas anteriores/.test(b) && (await t.page.evaluate(() => document.getElementById('sheetbody').firstElementChild.contains(document.getElementById('cmblk')))), b);
       t.ok('cuenta 1 salida con datos sin marcar y progreso por variable', /1 salida tiene/.test(b) && /Horas\s*1\/2/.test(b) && /Agua\s*2\/3/.test(b) && /Cebo\s*1\/2/.test(b), b);
       t.ok('«Solo mirar el mar» no pide horas ni cebo', !/Horas\s*1\/3/.test(b));
       await t.shot(SHP + 'ajustes-bloque');
@@ -39,7 +39,7 @@ module.exports = {
     });
     await t.case('Al volver, todo al día; «No lo sé» y filtros', async () => {
       await t.tap('[data-a="cm-back"]', 700);
-      const b = await t.T('#cmblk');
+      const b = await t.page.evaluate(() => document.getElementById('cmblk').parentElement.parentElement.textContent.replace(/\s+/g, ' '));
       t.ok('Ajustes muestra todo al día', /Todas tus salidas tienen los datos al día/.test(b) && /Horas\s*2\/2/.test(b), b);
       await t.put('trips', 'a4', { date: '2026-10-15', siteId: 's1', siteName: 'Matxitxako', mode: 'Corcho', companions: [], eventos: [], createdAt: 4, stops: [{ id: 'sa4', spotId: 'cA', spotName: 'Roca vieja', tFrom: '', tTo: '', baits: [] }] });
       await t.wait(900); await t.reload(); await t.wait(1500);

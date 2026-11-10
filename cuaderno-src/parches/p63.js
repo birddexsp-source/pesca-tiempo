@@ -114,6 +114,7 @@ function enBody(R,full){
   var l=R.l,h='';
   if(R.noh)return '<p class="hint">Faltan las horas de esta salida. Ponlas en Ajustes → Completar salidas anteriores para poder compararla.</p>';
   h+=enTiles(R);
+  if(!full){var t0=R.tips[0];if(t0)h+='<div class="entip one"><i>💡</i><div><b>'+esc(t0.x)+'</b></div></div>';return h}
   if(R.inf.length){
     h+='<div class="eni"><span class="eyebrow">Qué influyó</span>'+R.inf.slice(0,full?6:2).map(function(e){
       return '<div class="enr '+(e.dir==='+'?'up':'dn')+'"><i>'+(e.dir==='+'?'▲':'▼')+'</i><div><b>'+esc(e.t.charAt(0).toUpperCase()+e.t.slice(1))+'</b><span>'+esc(enEffTxt(e))+'</span><small>Fiabilidad '+ENCF[e.conf]+'</small></div></div>'}).join('')+'</div>';

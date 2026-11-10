@@ -306,7 +306,7 @@ module.exports = {
       await t.page.evaluate(() => { const b = document.createElement('button'); b.setAttribute('data-a', 'open-spot'); b.setAttribute('data-id', 'mem1'); b.id = 'tmpopen'; document.body.appendChild(b); b.click(); });
       await t.wait(1200);
       const x = await t.page.evaluate(() => (document.getElementById('sheetbody') || {}).textContent || '');
-      t.ok('sección Memoria del spot con 2 visitas', /Memoria del spot/.test(x) && /2 visitas/.test(x), x.slice(0, 80));
+      t.ok('pestaña Visitas con 2 visitas', /Visitas · 2/.test(x), x.slice(0, 120));
       t.eq('una tarjeta por visita', await t.N('.mvc'), 2);
       t.ok('veredicto malo con el motivo', /demasiado viento/.test(x) && /demasiada ola/.test(x));
       t.ok('veredicto bueno', /Condiciones buenas/.test(x));

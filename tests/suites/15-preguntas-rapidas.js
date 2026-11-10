@@ -46,7 +46,7 @@ module.exports = {
     });
     await t.case('Ajustes: lista de respuestas con sitio para el texto de las notas de voz', async () => {
       await t.tap('[data-a="open-settings"]', 700);
-      const b = await t.T('#qrblk');
+      const b = await t.page.evaluate(() => document.getElementById('qrblk').textContent.replace(/\s+/g, ' '));
       t.ok('«Mis respuestas rápidas» cuenta lo guardado y las notas sin texto', /Mis respuestas rápidas/.test(b) && /5 guardadas/.test(b) && /1 nota de voz sin texto/.test(b), b);
       await t.page.evaluate(() => { document.getElementById('qrblk').open = true; });
       await t.page.fill('#qrblk textarea[data-qre]', 'El cebo vuelve chupado'); await t.page.keyboard.press('Tab'); await t.wait(800);

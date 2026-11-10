@@ -9443,7 +9443,7 @@ function qrUnit(q,ref,kind,step){
   if(q.o.length)h+='<div class="qrc n'+(q.o.length%3===0||q.o.length>4?3:2)+'">'+q.o.map(function(o){return '<button type="button" class="qro'+(a.a===o[0]?' on':'')+'" data-a="qr-a" data-ref="'+k+'" data-q="'+i+'" data-v="'+esc(o[0])+'" aria-pressed="'+(a.a===o[0])+'"><span class="qe">'+(o[2]||'')+'</span><span>'+esc(o[1])+'</span></button>'}).join('')+'</div>';
   h+='<div class="qrv">';
   if(rec)h+='<button type="button" class="qrm rec" data-a="qr-rec" data-ref="'+k+'" data-q="'+i+'"><span class="rdot"></span> Grabando · toca para parar</button>';
-  else h+='<button type="button" class="qrm" data-a="qr-rec" data-ref="'+k+'" data-q="'+i+'">🎙 '+(a.audio?'Grabar otra':'Contestar con voz')+'</button>'+(qrDictOK()?'<button type="button" class="qrm" data-a="qr-dict" data-ref="'+k+'" data-q="'+i+'">🗣 Dictar</button>':'');
+  else h+='<button type="button" class="qrm" data-a="qr-rec" data-ref="'+k+'" data-q="'+i+'">🎙 '+(a.audio?'Otra vez':'Voz')+'</button>'+(qrDictOK()?'<button type="button" class="qrm" data-a="qr-dict" data-ref="'+k+'" data-q="'+i+'">🗣 Dictar</button>':'');
   h+='</div>';
   if(a.audio){var u=audSrc(a.audio);h+=u?'<audio controls preload="none" src="'+u+'"></audio>':'<small class="hint">🎙 audio guardado</small>'}
   if(q.open||a.txt)h+='<textarea class="qrt" data-qrt="'+i+'" data-ref="'+k+'" placeholder="O escríbelo aquí…" rows="2">'+esc(a.txt||'')+'</textarea>';
@@ -10091,6 +10091,7 @@ function enBody(R,full){
   var l=R.l,h='';
   if(R.noh)return '<p class="hint">Faltan las horas de esta salida. Ponlas en Ajustes → Completar salidas anteriores para poder compararla.</p>';
   h+=enTiles(R);
+  if(!full){var t0=R.tips[0];if(t0)h+='<div class="entip one"><i>💡</i><div><b>'+esc(t0.x)+'</b></div></div>';return h}
   if(R.inf.length){
     h+='<div class="eni"><span class="eyebrow">Qué influyó</span>'+R.inf.slice(0,full?6:2).map(function(e){
       return '<div class="enr '+(e.dir==='+'?'up':'dn')+'"><i>'+(e.dir==='+'?'▲':'▼')+'</i><div><b>'+esc(e.t.charAt(0).toUpperCase()+e.t.slice(1))+'</b><span>'+esc(enEffTxt(e))+'</span><small>Fiabilidad '+ENCF[e.conf]+'</small></div></div>'}).join('')+'</div>';
@@ -10228,6 +10229,266 @@ renderHoy=function(){
 '.enpr{display:grid;gap:1px;padding:9px 0;border-top:1px solid var(--line)}.enpr span{font:700 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tide)}.enpr b{font:600 15px/1.3 var(--display)}.enpr small{color:var(--dim)}.enpx{padding:7px 10px;margin-top:6px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);font-size:13.5px}'+
 '.enbb{padding:0 16px 16px}.endisc .enr{border-top:1px solid var(--line)}.endisc .enr .btn{margin-top:8px}';
 document.head.appendChild(s)})();
+
+/* ===== p65: interfaz visual — resumen primero, detalle al tocar =====
+   Componentes: acordeón con icono (uiAcc) que recuerda si lo abriste, y el Plan reordenado. */
+var UIO={};
+function uiOpen(k){return !!UIO[k]}
+document.addEventListener('toggle',function(ev){var d=ev.target;if(d&&d.getAttribute&&d.getAttribute('data-uk'))UIO[d.getAttribute('data-uk')]=d.open},true);
+function uiAccHTML(k,icon,title,sub,inner,cls){
+  return '<details class="uiacc '+(cls||'card')+'" data-uk="'+esc(k)+'"'+(UIO[k]?' open':'')+'><summary><span class="uii">'+icon+'</span><span class="uit"><b>'+title+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span><i class="uic" aria-hidden="true"></i></summary><div class="uib">'+inner+'</div></details>';
+}
+function uiDom(h){var d=document.createElement('div');d.innerHTML=h;return d}
+function uiFirst(t,n){t=String(t||'').replace(/\s+/g,' ').trim();return t.length>n?t.slice(0,n-1)+'…':t}
+function uiShort(t){return String(t||'').split(' (')[0]}
+/* Plan */
+function uiPlanTop(){
+  var P=null,A=null;try{P=enPlan()}catch(e){}
+  if(!P){try{A=mdAdvice()}catch(e){}if(!A||!A.top||!A.top.length)return null;var c=A.top[0];P={c:c,s:c.E.s}}
+  var c=P.c,b=c.E.best,tiles=[['🕖','Ventana',mm(b.from)+'–'+mm(b.to)]];
+  if(P.franja)tiles.push(['🌅','Franja',uiShort(P.franja.best.t)]);
+  if(P.cebo)tiles.push(['🪱','Cebo',P.cebo.best.t]);
+  if(tiles.length<3&&P.mont&&P.mont[0])tiles.push(['🪝','Anzuelo',uiFirst(P.mont[0][1].split(';')[0],22)]);
+  var h='<section class="card pnext"><button type="button" class="pnh" data-a="day" data-d="'+c.iso+'"><span class="pni">🎯</span><span class="pnx"><small>Tu próxima salida</small><b>'+esc(mdDayShort(c.iso))+' · '+esc(P.s.name)+'</b></span><em class="pnsc">'+pct(c.sc)+'<u>%</u></em></button>'+
+    '<div class="pnt">'+tiles.map(function(x){return '<div><i>'+x[0]+'</i><small>'+x[1]+'</small><b>'+esc(x[2])+'</b></div>'}).join('')+'</div>';
+  return h;
+}
+var _rh65=renderHoy;
+renderHoy=function(){
+  var h=_rh65(),D;
+  try{
+    D=uiDom(h);var q=function(s){return D.querySelector(':scope > '+s)};
+    var days=q('.pdays'),ver=q('.pverdict'),adv=q('.mdadv'),pl=q('.enpl'),met=q('.pmeteo'),ag=q('.agday');
+    if(!ver)return h;
+    var top=uiPlanTop(),topEl=null;
+    if(top){
+      var more='';if(adv){adv.classList.add('flat');more+=adv.outerHTML;adv.remove()}
+      if(pl){pl.classList.add('flat');more+=pl.outerHTML;pl.remove()}
+      var T=uiDom(top+(more?'<details class="pmore" data-uk="pmore"'+(UIO.pmore?' open':'')+'><summary>Por qué y otras opciones</summary>'+more+'</details>':'')+'</section>');topEl=T.firstChild;
+    }
+    var anchor=days||D.firstChild;
+    if(ver.parentNode===D&&anchor)anchor.insertAdjacentElement('afterend',ver);
+    if(topEl)ver.insertAdjacentElement('afterend',topEl);
+    if(met){var mt=(met.textContent.match(/Condiciones del día\s*(.*?)(?:Marea|$)/)||[])[1]||'';var a=uiDom(uiAccHTML('pmet','🌤','Condiciones del día',esc(uiFirst(mt,48)),met.outerHTML.replace('class="card pmeteo','class="flat pmeteo')));met.replaceWith(a.firstChild)}
+    if(ag){var gt=ag.querySelector('.agr');var a2=uiDom(uiAccHTML('pagua','💧','Agua y mar',esc(uiFirst(gt?gt.textContent:'',52)),ag.outerHTML.replace('class="card agday','class="flat agday')));ag.replaceWith(a2.firstChild)}
+    [].forEach.call(D.querySelectorAll(':scope > .psite'),function(art,i){
+      var smb=art.querySelector('.smb');if(!smb)return;
+      var n=smb.querySelectorAll('.smr').length,nd=smb.querySelectorAll('.smr.nd').length,k='psm'+i+uiFirst((art.querySelector('h3')||{}).textContent,20);
+      var d=document.createElement('details');d.className='psmd';d.setAttribute('data-uk',k);if(UIO[k])d.open=true;
+      d.innerHTML='<summary>Tus reglas para este día'+(nd===n?' · sin datos aún':'')+'</summary>';smb.classList.remove('smb');d.appendChild(smb.cloneNode(true));smb.replaceWith(d);
+    });
+    h=D.innerHTML;
+  }catch(e){return h}
+  return h;
+};
+(function(){var s=document.createElement('style');s.textContent=
+'.uiacc{padding:0!important;overflow:hidden}.uiacc>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent}.uiacc>summary::-webkit-details-marker{display:none}'+
+'.uii{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:var(--accent-soft,rgba(58,208,200,.12));border:1px solid var(--line)}.uit{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.uit b{font:700 15px/1.25 var(--display)}.uit small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
+'.uic{flex:none;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 3px 0;transition:transform .2s}.uiacc[open]>summary .uic{transform:rotate(-135deg);margin-bottom:-3px}.uiacc[open]>summary{border-bottom:1px solid var(--line)}.uib{padding:12px 14px 14px}.uib>.flat{margin:0!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}'+
+'.pnext{display:block!important;border:1px solid rgba(58,208,200,.35);background:linear-gradient(155deg,rgba(58,208,200,.12),var(--surface) 65%);padding:0!important;overflow:hidden}.pnh{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:14px 14px 10px;cursor:pointer}.pni{flex:none;width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:21px;background:rgba(58,208,200,.16)}.pnx{flex:1;min-width:0;display:flex;flex-direction:column}.pnx small{font:700 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tide)}.pnx b{font:700 17px/1.25 var(--display)}'+
+'.pnsc{font:800 22px var(--display);font-style:normal;color:var(--accent)}.pnsc u{font-size:12px;text-decoration:none;opacity:.7}.pnt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 14px}.pnt>div{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:14px;background:var(--surface2);border:1px solid var(--line);min-width:0}.pnt i{font-style:normal;font-size:18px}.pnt small{font:700 9.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}.pnt b{font:600 13px/1.25 var(--display);overflow-wrap:anywhere}'+
+'.pmore{border-top:1px solid var(--line)}.pmore>summary{list-style:none;padding:12px 14px;font:600 13px var(--display);color:var(--muted);cursor:pointer;display:flex;justify-content:space-between}.pmore>summary::-webkit-details-marker{display:none}.pmore>summary::after{content:"▾";transition:transform .2s}.pmore[open]>summary::after{transform:rotate(180deg)}.pmore>.flat{margin:0 14px 14px!important;padding:12px!important;border:1px solid var(--line)!important;border-radius:16px;background:var(--surface2)!important}'+
+'.psmd{margin:10px 0}.psmd>summary{list-style:none;cursor:pointer;font:600 12.5px var(--display);color:var(--muted);padding:6px 0}.psmd>summary::-webkit-details-marker{display:none}.psmd>summary::before{content:"▸ "}.psmd[open]>summary::before{content:"▾ "}';
+document.head.appendChild(s)})();
+
+/* ===== p66: ficha del spot en pestañas (Resumen · Rinde · Visitas) ===== */
+var STT='res';
+var _oss66=openSpotSheet;
+openSpotSheet=function(id){
+  _oss66(id);
+  var body=document.getElementById('sheetbody');if(!body||body.querySelector('.stx'))return;
+  try{
+    var kids=[].slice.call(body.children),P={res:[],rin:[],vis:[],his:[]},cur='res',keep=[],act=null;
+    kids.forEach(function(c){
+      if(c.matches('.shero,.stseg,.sci,.stx'))return;
+      if(c.matches('.actions')){act=c;return}
+      if(c.matches('.sect')){var t=c.textContent;cur=/Planificador/.test(t)?'res':/funciona/.test(t)?'rin':/Memoria/.test(t)?'vis':/Historial/.test(t)?'his':cur;if(/Planificador/.test(t))P[cur].push(c);else c.remove();return}
+      if(c.matches('.agwrap,.enrec,.rules'))P.rin.push(c);
+      else if(c.matches('.mvl'))P.vis.push(c);
+      else P[cur].push(c);
+    });
+    /* cada visita: lo importante a la vista, el agua al tocar */
+    P.vis.forEach(function(l){[].forEach.call(l.querySelectorAll('.mvc'),function(a,i){
+      var res=a.querySelector('.mvr'),rest=[],n=res;if(!res)return;while(n&&n.nextElementSibling){n=n.nextElementSibling;rest.push(n)}
+      if(!rest.length)return;
+      var sel=a.querySelector('.mva [aria-pressed="true"],.mva .on,.mva .sel'),txt=sel?sel.textContent.replace(/\s+/g,' ').trim():'Sin apuntar',d=document.createElement('details');d.className='mvdet';d.setAttribute('data-uk','mvd'+id+i);if(UIO['mvd'+id+i])d.open=true;
+      d.innerHTML='<summary>💧 Agua: '+esc(txt)+'</summary>';rest.forEach(function(r){d.appendChild(r)});a.appendChild(d)})});
+    var rl=P.rin.filter(function(e){return e.matches('.rules')}),rest=P.rin.filter(function(e){return !e.matches('.rules')}).sort(function(a,b){return (a.matches('.enrec')?0:1)-(b.matches('.enrec')?0:1)});
+    var nrl=rl[0]?rl[0].children.length:0,rlh='';
+    if(rl[0]){var nd=[].filter.call(rl[0].children,function(x){return /Aún sin datos/.test(x.textContent)}).length;rlh=uiAccHTML('strl'+id,'🧠','Lo que te funciona',nd===nrl?'Aún sin datos · se afina con cada salida':(nrl-nd)+' de '+nrl+' con datos',rl[0].outerHTML);rl[0].remove()}
+    P.rin=rest;
+    var his=P.his.map(function(e){return e.outerHTML}).join(''),hn=(body.querySelectorAll('.tli').length);
+    P.his.forEach(function(e){e.remove()});
+    var ru=P.rin.length&&!P.rin.some(function(e){return e.matches('.rules')})?'':'';
+    var tabs=[['res','Resumen'],['rin','Cómo rinde'],['vis','Visitas'+(P.vis.length&&body.querySelectorAll('.mvc').length?' · '+body.querySelectorAll('.mvc').length:'')]];
+    if(!/^(res|rin|vis)$/.test(STT))STT='res';
+    var nav='<div class="spx-nav stx" role="tablist">'+tabs.map(function(t){return '<button type="button" role="tab" class="'+(STT===t[0]?'on':'')+'" data-a="st-tab" data-v="'+t[0]+'" aria-selected="'+(STT===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>';
+    var wrap=document.createElement('div');wrap.className='stp';
+    wrap.innerHTML=nav;
+    var mk=function(k,els,extra){var s=document.createElement('section');s.className='stpn';s.setAttribute('data-p',k);s.hidden=STT!==k;els.forEach(function(e){s.appendChild(e)});if(extra)s.insertAdjacentHTML('beforeend',extra);wrap.appendChild(s)};
+    mk('res',P.res);mk('rin',P.rin,rlh);
+    mk('vis',P.vis,his?uiAccHTML('sthis','📜','Historial',hn+(hn===1?' salida':' salidas'),his):'');
+    var anchor=body.querySelector('.stseg')||body.querySelector('.shero');
+    if(anchor)anchor.insertAdjacentElement('afterend',wrap);else body.prepend(wrap);
+    /* si no hay nada en una pestaña, la quito */
+    [].forEach.call(wrap.querySelectorAll('.stpn'),function(s){if(!s.children.length){var b=wrap.querySelector('[data-v="'+s.getAttribute('data-p')+'"]');if(b)b.remove();s.remove()}});
+    if(!wrap.querySelector('.stpn[data-p="'+STT+'"]')){var f=wrap.querySelector('.stpn');if(f){f.hidden=false;STT=f.getAttribute('data-p');var fb=wrap.querySelector('[data-v="'+STT+'"]');if(fb)fb.classList.add('on')}}
+  }catch(e){}
+};
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest?ev.target.closest('[data-a="st-tab"]'):null;if(!b)return;
+  ev.stopPropagation();STT=b.getAttribute('data-v');
+  [].forEach.call(document.querySelectorAll('.stx button'),function(x){var on=x===b;x.classList.toggle('on',on);x.setAttribute('aria-selected',on)});
+  [].forEach.call(document.querySelectorAll('.stp .stpn'),function(p){p.hidden=p.getAttribute('data-p')!==STT});
+},true);
+(function(){var s=document.createElement('style');s.textContent=
+'.stx{top:-1px;display:flex;width:100%;box-sizing:border-box}.stpn{display:flex;flex-direction:column;gap:12px}.stpn[hidden]{display:none}.stpn>.block,.stpn>.card{margin:0}.mvdet{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}.mvdet>summary{list-style:none;cursor:pointer;font:600 12.5px var(--display);color:var(--muted);padding:4px 0}.mvdet>summary::-webkit-details-marker{display:none}.mvdet>summary::after{content:" ▾"}.mvdet[open]>summary::after{content:" ▴"}';
+document.head.appendChild(s)})();
+
+/* ===== p67: Ajustes como filas con icono que se despliegan ===== */
+var _os67=openSettings;
+openSettings=function(){
+  _os67.apply(this,arguments);
+  var b=document.getElementById('sheetbody');if(!b||b.querySelector('.uiacc'))return;
+  try{
+    var cm=b.querySelector('#cmblk'),qr=b.querySelector('#qrblk'),ex=b.querySelector('#expblk'),out=[],used=[];
+    var wrapEl=function(k,icon,title,sub,el){var a=document.createElement('div');a.innerHTML=uiAccHTML(k,icon,title,sub,'');var det=a.firstChild;det.querySelector('.uib').appendChild(el);el.classList.add('flat');var h=el.querySelector(':scope > h3');if(h)h.remove();return det};
+    if(cm){
+      var S=cmStats(),n=0,ok=0;CMF.forEach(function(c){n+=S[c[0]].n;ok+=S[c[0]].ok});var p=n?Math.round(100*ok/n):100;
+      var nv=0,vis={};CMF.forEach(function(c){S[c[0]].miss.forEach(function(l){vis[cmKey(l)]=1})});nv=Object.keys(vis).length;
+      var d=wrapEl('set-cm','🧩','Completar salidas anteriores',nv?nv+(nv===1?' salida con datos sin marcar · ':' salidas con datos sin marcar · ')+p+' %':'Todo al día · '+p+' %',cm);
+      if(nv&&!UIO['set-cm']&&UIO['set-cm']===undefined)d.open=true;out.push(d);
+    }
+    if(qr){qr.classList.add('uiacc');var sm=qr.querySelector(':scope > summary'),t=sm?sm.textContent.replace(/\s+/g,' ').trim():'';var sm0=sm.querySelector('small'),n2=(t.match(/\d+/)||[0])[0],subq=sm0?sm0.textContent.trim():n2+(+n2===1?' guardada':' guardadas');
+      sm.innerHTML='<span class="uii">🎙</span><span class="uit"><b>Mis respuestas rápidas</b><small>'+esc(subq)+'</small></span><i class="uic"></i>';
+      qr.setAttribute('data-uk','set-qr');if(UIO['set-qr'])qr.open=true;
+      var inner=document.createElement('div');inner.className='uib';while(sm.nextSibling)inner.appendChild(sm.nextSibling);qr.appendChild(inner);out.push(qr)}
+    if(ex){out.push(wrapEl('set-ex','💾','Copia de seguridad','Descargar tus datos en .json o .csv',ex))}
+    /* lo que queda: texto de sitios y spots */
+    var rest=[].slice.call(b.children).filter(function(c){return c!==cm&&c!==qr&&c!==ex&&!c.classList.contains('uiacc')});
+    if(rest.length){var box=document.createElement('div');rest.forEach(function(r){box.appendChild(r)});
+      var ns=sites.length,np=spots.length,w=document.createElement('div');w.className='flat';w.appendChild(box);
+      var det=wrapEl('set-tx','📝','Descripciones de sitios y spots',ns+(ns===1?' sitio':' sitios')+' · '+np+(np===1?' spot':' spots')+' · para pegar en el chat',w);out.push(det)}
+    out.forEach(function(e){b.appendChild(e)});
+  }catch(e){}
+};
+(function(){var s=document.createElement('style');s.textContent='#qrblk.uiacc>summary{flex-direction:row!important;align-items:center!important;gap:12px!important}#sheetbody>.uiacc{margin-bottom:10px}#sheetbody .uib .block{margin:0;padding:0;border:0;background:none}';document.head.appendChild(s)})();
+
+/* ===== p68: Salidas en filas compactas, últimas primero ===== */
+var TRN=6;
+function trShort(d){return String(d||'').slice(0,3)}
+var _rs68=renderSalidas;
+renderSalidas=function(){
+  var h=_rs68(),D;
+  try{
+    D=uiDom(h);var arts=[].slice.call(D.querySelectorAll('article.trip.tcc'));if(!arts.length)return h;
+    arts.forEach(function(a,i){
+      var op=a.querySelector('.tcopen'),id=op?op.getAttribute('data-id'):'',dc=a.querySelector('.dchip'),nm=a.querySelector('h3'),sub=a.querySelector('.htx p'),fb=a.querySelector('.fbadge'),tcs=a.querySelector('.tcs'),tct=a.querySelector('.tct');
+      if(!op||!dc||!nm)return;
+      var meta=(sub?sub.textContent.replace(/^[a-záéíóú]+ · /i,function(m){return m}):'');
+      var chips=tcs?[].map.call(tcs.querySelectorAll('span'),function(x){return x.textContent.replace(/\s+/g,' ').trim()}).filter(function(x){return /h$|spot/.test(x)}).join(' · '):'';
+      var fish=tct?[].map.call(tct.querySelectorAll('em'),function(x){return x.textContent.replace(/\s+/g,' ').trim()}).join(', '):'';
+      var r=document.createElement('article');r.className='trip tcc trow';r.style.animationDelay='0ms';
+      r.innerHTML='<div role="button" tabindex="0" class="tcopen" data-a="trip-open" data-id="'+esc(id)+'" aria-label="Abrir salida"><div class="dchip"><b>'+dc.querySelector('b').textContent+'</b><span>'+dc.querySelector('span').textContent+'</span></div><div class="trm"><h3>'+nm.innerHTML+'</h3><p>'+esc(meta)+(chips?' · '+esc(chips):'')+'</p>'+(fish?'<div class="trf">🐟 '+esc(fish)+'</div>':'')+'</div>'+(fb?'<div class="fbadge"><b>'+fb.querySelector('b').textContent+'</b><span>'+fb.querySelector('span').textContent+'</span></div>':'<i class="tcg" aria-hidden="true">›</i>')+'</div>';
+      a.replaceWith(r);
+    });
+    var rows=[].slice.call(D.querySelectorAll('article.trow')),hid=0;
+    if(rows.length>TRN){rows.slice(TRN).forEach(function(r){if(!UIO.trall){r.hidden=true;hid++}});
+      if(!UIO.trall){[].forEach.call(D.querySelectorAll('.mhead'),function(m){var n=m.nextElementSibling;if(n&&n.hidden)m.hidden=true});
+        rows[TRN-1].insertAdjacentHTML('afterend','<button type="button" class="trmore" data-a="ui-trall">Ver las '+hid+' salidas anteriores</button>')}}
+    h=D.innerHTML;
+  }catch(e){return h}
+  return h;
+};
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest?ev.target.closest('[data-a="ui-trall"]'):null;if(!b)return;
+  ev.stopPropagation();UIO.trall=true;try{refresh()}catch(e){}
+},true);
+(function(){var s=document.createElement('style');s.textContent=
+'.trow{padding:0!important;overflow:hidden}.trow .tcopen{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}.trow .dchip{flex:none;width:46px;height:50px;border-radius:14px;background:var(--surface2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;position:static}.trow .dchip b{font:800 18px/1 var(--display)}.trow .dchip span{font:700 9.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}'+
+'.trm{flex:1;min-width:0}.trm h3{margin:0;font:700 15.5px/1.25 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trm p{margin:1px 0 0;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trf{margin-top:5px;font:600 12.5px var(--display);color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
+'.trow .fbadge{flex:none;position:static;min-width:46px}.trow .tcg{flex:none;color:var(--dim);font-style:normal;font-size:20px}.trow[hidden],.mhead[hidden]{display:none!important}.trmore{display:block;width:100%;margin:10px 0 4px;padding:13px;border-radius:16px;border:1px dashed var(--line);background:transparent;color:var(--muted);font:600 13.5px var(--display)}'+
+'.lvch{min-height:0!important;gap:12px!important}.lvc{flex:none!important;display:grid!important;grid-template-columns:60px 1fr;align-items:center;gap:4px 14px!important;padding:18px!important;border-radius:22px!important}.lvc .big{position:static!important;font-size:40px!important;grid-row:1/3;text-align:center}.lvc .tt{display:flex;flex-direction:column;gap:3px}.lvc .tt b{font:700 18px var(--display)}.lvc .tt small{font-size:12.5px;line-height:1.35}.lvc .cta{grid-column:2;justify-self:start;margin-top:4px;padding:8px 16px!important;font-size:13px!important}'+
+'.entip.one{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.enc .enact{margin-top:10px}'+
+/* preguntas: opciones en una fila de chips, acciones pequeñas */
+'.qrc,.qrc.n2,.qrc.n3{display:flex!important;flex-wrap:wrap;gap:8px!important}.qro{flex-direction:row!important;min-height:44px!important;padding:8px 14px!important;border-radius:99px!important;gap:7px!important}.qro .qe{font-size:18px!important}'+
+'.qrv{display:flex;gap:8px}.qrm{flex:1;min-height:40px!important;padding:6px 10px!important;font-size:13px!important}.qrcard .qrpass{display:inline-block!important;width:auto!important;margin:2px 14px 0 0!important}.qrpass{padding:4px!important;font-size:12.5px!important;min-height:0!important}';
+document.head.appendChild(s)})();
+
+/* ===== p69: Capturas con lo justo a la vista ===== */
+var _rc69=renderCapturas;
+renderCapturas=function(){
+  var h=_rc69(),D;
+  try{
+    D=uiDom(h);
+    [].forEach.call(D.querySelectorAll(':scope > .cpanel'),function(p,i){
+      var t=((p.querySelector('.hd b')||{}).textContent||'').trim();if(!t)return;
+      var icon=/Tallas/.test(t)?'📏':/Spots/.test(t)?'📍':'📊',sub=/Tallas/.test(t)?(p.querySelector('.hd span,.hd small')||{}).textContent||'':[].slice.call(p.querySelectorAll('.bars > *')).slice(0,2).map(function(x){return [].map.call(x.children,function(c){return c.textContent.trim()}).filter(Boolean).join(' ')}).join(' · ');
+      if(/Ranking/.test(t))return;
+      var hd=p.querySelector('.hd');if(hd)hd.remove();p.classList.add('flat');p.classList.remove('card');
+      var a=uiDom(uiAccHTML('cap'+i,icon,esc(t),esc(uiFirst(sub,50)),p.outerHTML));p.replaceWith(a.firstChild);
+    });
+    var bc=D.querySelector(':scope > .baitcard');
+    if(bc){var rows=[].slice.call(bc.querySelectorAll('.brow')),sub=rows.slice(0,2).map(function(r){return r.querySelector('b').textContent+' '+r.querySelector('.bn').textContent}).join(' · ');
+      var blk=bc.querySelector('.block');if(blk){blk.classList.add('flat');var a2=uiDom(uiAccHTML('capbait','🪱','Tus cebos',esc(uiFirst(sub,50)),blk.outerHTML));bc.replaceWith(a2.firstChild)}}
+    h=D.innerHTML;
+  }catch(e){return h}
+  return h;
+};
+(function(){var s=document.createElement('style');s.textContent=
+'.ccard .cptap{display:none}.ccard .ft{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}.ccard .ft .btn{min-height:30px;padding:4px 12px;font-size:12px}.uiacc .brow{padding:8px 0;border-top:1px solid var(--line)}.uiacc .brow:first-child{border-top:0}';
+document.head.appendChild(s)})();
+
+/* ===== p70: ficha de especie — Resumen corto, detalle en filas que se abren ===== */
+var _osd70=openSpeciesDetail;
+openSpeciesDetail=function(k){
+  _osd70(k);
+  var body=document.getElementById('sheetbody');if(!body)return;
+  try{
+    var pn=body.querySelector('.spp[data-p="res"]');if(!pn||pn.querySelector('.uiacc'))return;
+    [].forEach.call(body.querySelectorAll(':scope > .block'),function(b){var e=b.querySelector('.eyebrow');if(e&&/Talla mínima en|Cebo que funciona/i.test(e.textContent))b.remove()});
+    var by=function(re){return [].slice.call(pn.querySelectorAll('.block,.card,section')).filter(function(b){if(b.closest('.uiacc')&&b.parentNode!==pn)return false;var e=b.querySelector('.eyebrow');return e&&re.test(e.textContent)})};
+    var mk=function(key,icon,title,sub,els){
+      if(!els.length)return;var a=uiDom(uiAccHTML('sp'+key+k,icon,title,sub,'')),box=a.firstChild.querySelector('.uib');
+      els[0].insertAdjacentElement('beforebegin',a.firstChild);var d=pn.querySelector('[data-uk="sp'+key+k+'"] .uib');
+      els.forEach(function(e){e.classList.add('flat');d.appendChild(e)});
+    };
+    var num=by(/Tallas que has|Con qué cebo|Con qué agua|Cebo que funciona/i);
+    var nums=num.filter(function(b){return !/Cebo que funciona/i.test(b.querySelector('.eyebrow').textContent)});
+    var dup=num.filter(function(b){return /Cebo que funciona/i.test(b.querySelector('.eyebrow').textContent)});
+    dup.forEach(function(b){b.remove()});
+    mk('num','📊','Tus números en detalle','Tallas · cebo · agua',nums);
+    var cu=by(/Cuándo la pillas/i);mk('cu','🕐','Cuándo la pillas',cu[0]?uiFirst((cu[0].textContent.match(/(Fiable|Orientativo|Poca base|Sin datos)[^.]*/i)||[''])[0],50):'',cu);
+    var po=by(/Para otra como esta/i);mk('po','💡','Para otra como esta','Dónde, cuándo, cebo, montaje',po);
+    
+  }catch(e){}
+};
+(function(){var s=document.createElement('style');s.textContent='.spp .uiacc{margin-bottom:10px}.spp .uib>.block{margin:0;padding:0;border:0;background:none}.spp .uib>.block+.block{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}';document.head.appendChild(s)})();
+
+/* ===== p71: formulario de salida — lo esencial a la vista, lo opcional en filas ===== */
+var _mb71=mixBlock;
+mixBlock=function(d){
+  var h=_mb71(d);if(!h)return h;
+  var sel=(d.cebos||[]).map(function(c){return c.n}).join(', ');
+  return uiAccHTML('fm-cebo','🪱','Cebos de la salida',esc(sel||'Toca para elegir (opcional)'),h.replace('<h3>Cebos de la salida</h3>','').replace('<div class="block mixb">','<div class="mixb">'));
+};
+var _ss71=stepSite;
+stepSite=function(){
+  var h=_ss71();
+  try{
+    var D=uiDom(h);
+    [].forEach.call(D.querySelectorAll(':scope > .block'),function(b){
+      var t=((b.querySelector('h3')||{}).textContent||'').trim();
+      if(/Windy y mareas/.test(t)){var h3=b.querySelector('h3');h3.remove();b.classList.add('flat');var a=uiDom(uiAccHTML('fm-windy','🌊','Windy y mareas','Opcional · altura del agua, ola y viento',b.outerHTML));b.replaceWith(a.firstChild)}
+      else if(/A dónde has ido/.test(t)){
+        var f=b.querySelector(':scope > .field');
+        if(f&&f.querySelector('textarea')&&!f.querySelector('input')){var ta=f.querySelector('textarea'),v=ta?ta.value||ta.textContent:'';var a2=uiDom(uiAccHTML('fm-desc','📝','Descripción del sitio',esc(uiFirst(v,44)||'Cómo es, cómo se llega…'),''));var box=a2.firstChild.querySelector('.uib');f.replaceWith(a2.firstChild);a2.firstChild;var det=D.querySelector('[data-uk="fm-desc"] .uib');if(det)det.appendChild(f)}
+      }
+    });
+    return D.innerHTML;
+  }catch(e){return h}
+};
+(function(){var s=document.createElement('style');s.textContent='#stp .gtop>summary{display:grid!important;grid-template-columns:38px 1fr auto;align-items:center;gap:0 12px}#stp .gtop>summary::before{content:"🎣";grid-row:1/3;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:var(--accent-soft,rgba(58,208,200,.12));border:1px solid var(--line)}#stp .gtop>summary>span{font:700 15px var(--display)}#stp .gtop>summary>small{grid-column:2;text-align:left}#stp .uiacc{margin-bottom:12px}#stp .uib>.flat{margin:0!important}#stp .uib>.mixb h3{display:none}#stp .uib>.mixb{margin:0}#stp .uiacc .field{margin:0}';document.head.appendChild(s)})();
 
 })();
 </script></body></html>
