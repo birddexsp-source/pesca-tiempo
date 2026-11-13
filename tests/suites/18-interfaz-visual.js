@@ -104,7 +104,7 @@ module.exports = {
       await t.goTab('hoy'); await t.tap('[data-a="open-settings"]', 800);
       const h = await H(t, '#sheetbody');
       t.ok('Ajustes en menos de 1000 px (antes ~1700)', h > 0 && h < 1000, 'h=' + h);
-      t.ok('4 filas: completar, respuestas, copia y descripciones', (await t.N('#sheetbody > details.uiacc')) === 4);
+      t.ok('5 filas: completar, respuestas, copia, descripciones e instalar app', (await t.N('#sheetbody > details.uiacc')) === 5);
       t.ok('copia de seguridad plegada hasta que la abres', (await t.N('#sheetbody > details[data-uk="set-ex"]:not([open])')) === 1);
       await t.shot(SHP + 'ui-ajustes');
       await t.page.evaluate(() => document.querySelector('[data-uk="set-ex"] > summary').click()); await t.wait(400);
