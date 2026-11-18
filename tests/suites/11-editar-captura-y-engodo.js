@@ -331,7 +331,7 @@ module.exports = {
       await t.page.evaluate(() => { const b = [...document.querySelectorAll('.cpchip')].find(x => /Boga/.test(x.textContent)); b && b.click(); });
       await t.wait(900);
       const d = await t.page.evaluate(() => (document.getElementById('sheetbody') || {}).textContent || '');
-      t.ok('al tocar la especie se ve el detalle', /Uno a uno/.test(d) && /Mover las 5/.test(d), d.slice(0, 120));
+      t.ok('al tocar la especie se ve el detalle, pieza a pieza', /5 picadas tuyas/.test(d) && /Mover todas a otro spot/.test(d) && (await t.N('#sheetbody .sxr')) >= 2, d.slice(0, 160));
       await t.page.evaluate(() => { const s = document.querySelector('select[data-a="cap-mv"]'); s.value = 'cm1'; s.dispatchEvent(new Event('change', { bubbles: true })); });
       await t.wait(1200);
       const items = ((await t.docs('catches')).find(x => x.id === 'cmc') || {}).items || [];
@@ -355,7 +355,7 @@ module.exports = {
       t.ok('la pestaña cuenta peces (2), no anotaciones', /Capturas\s*2/.test(await t.T('.tdtabs')));
       await t.tap('[data-a="cap-sp"]', 700);
       const dt = await t.page.evaluate(() => document.getElementById('sheetbody').textContent);
-      t.ok('al tocar la especie: total y destino', /2/.test(dt) && /Destino/i.test(dt), dt);
+      t.ok('al tocar la especie: total y destino', /2 picadas tuyas/.test(dt) && /1 a casa · 1 liberado/.test(dt), dt);
       t.ok('detalle uno a uno con ✕ por pez', (await t.N('.cpx')) >= 1);
       await t.page.evaluate(() => { window.confirm = () => true; });
       await t.tap('.cpx', 1200);
