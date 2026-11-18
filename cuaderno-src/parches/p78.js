@@ -25,9 +25,20 @@ slotScore=function(M,c){
   if(ig&&r.w>0){f*=1/r.w;r.w=1}
   if(s.faseSolo&&M.K.phase&&c.ph!=null&&!inWin(c.ph,PH[M.e.from].t,PH[M.e.to].t)){f*=0.1;r.t=Math.min(r.t,0.05)}
   if(s.vivaMin&&c.rng!=null&&c.rng<s.vivaMin){f*=0.1;r.viva=false}
+  if(s.aguaMin&&AGS[s.aguaMin]!=null){var pa=hrAgua(s,c);if(pa!=null&&pa<AGS[s.aguaMin]){f*=0.45;r.agua=false}}
   r.v=Math.min(1,r.v*f);
   return r;
 };
+/* agua probable ese día en el spot (según tus visitas); null si no hay base */
+var HRAG={};
+function hrAguaIso(s,iso){
+  var k=s.id+'|'+iso+'|'+legs.length+'|'+Object.keys(AG).length;if(HRAG[k]!==undefined)return HRAG[k];
+  if(Object.keys(HRAG).length>200)HRAG={};
+  var v=null;try{var r=agPredict(s,iso);if(r&&r.agua)v=AGS[r.agua]}catch(e){}
+  if(v!=null)HRAG[k]=v;
+  return v;
+}
+function hrAgua(s,c){var d=new Date(c.ms);return hrAguaIso(s,d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'))}
 function hrPhTxt(s){var a=PH[s.from],b=PH[s.to];if(!a||!b)return '';return a.k===b.k?a.n.toLowerCase():a.n.toLowerCase()+' → '+b.n.toLowerCase()}
 var _sr79=siteRecipe;
 siteRecipe=function(G){
@@ -36,6 +47,7 @@ siteRecipe=function(G){
   var fs=S.filter(function(s){return s.faseSolo&&PH[s.from]&&PH[s.to]}),vv=S.filter(function(s){return s.vivaMin}),oi=S.length&&S.every(function(s){return s.olaDaIgual});
   if(fs.length){var t=hrPhTxt(fs[0]);if(t)ch.push('<span class="hrc">🌑 solo '+esc(t)+'</span>')}
   if(vv.length)ch.push('<span class="hrc">🌕 mareas vivas (≥ '+num(Math.min.apply(null,vv.map(function(s){return s.vivaMin})),1)+' m)</span>');
+  var am=S.filter(function(s){return s.aguaMin})[0];if(am)ch.push('<span class="hrc">💧 agua algo '+(am.aguaMin==='tomadilla'?'tomada':esc(am.aguaMin))+' o tras temporal</span>');
   if(oi)ch.push('<span class="hrc z">🌊 la ola importa poco</span>');
   if(!ch.length)return h;
   if(!h)return '<div class="recipe"><span class="eyebrow">Su receta</span><span class="conds">'+ch.join('')+'</span></div>';
@@ -45,6 +57,8 @@ siteRecipe=function(G){
 function hrDayNote(G,P){
   var S=G.spots.filter(function(E){return !E.pending}).map(function(E){return E.s}),rng=P&&P.C&&P.C.rng,out=[];
   var vv=S.filter(function(s){return s.vivaMin})[0];
+  var am=S.filter(function(s){return s.aguaMin&&AGS[s.aguaMin]!=null})[0];
+  if(am){var pa=hrAguaIso(am,P.iso);if(pa!=null&&pa<AGS[am.aguaMin])out.push('Agua probable '+AGL[pa][1].toLowerCase()+': aquí rinde con el agua algo más tomada o tras un temporal.')}
   if(vv&&rng!=null&&rng<vv.vivaMin)out.push('Mareas '+(rng<3.1?'muertas':'medias')+' ('+num(rng,1)+' m de recorrido): este sitio pide mareas vivas.');
   return out;
 }
@@ -64,6 +78,7 @@ openSpotEditor=function(id,draft){
   var row=to.closest('.row');if(!row||document.getElementById('sp-fsolo'))return;
   row.insertAdjacentHTML('afterend','<div class="hrbox"><label class="hrck"><input type="checkbox" id="sp-fsolo"'+(v('faseSolo')?' checked':'')+'> <span><b>Solo en esa marea</b><small>Fuera de «Marea desde–hasta» el Plan lo da por malo.</small></span></label>'+
     '<label class="hrck"><input type="checkbox" id="sp-viva"'+(v('vivaMin')?' checked':'')+'> <span><b>Solo con mareas vivas</b><small>Días con 3 m o más de recorrido de marea.</small></span></label>'+
+    '<label class="hrck"><input type="checkbox" id="sp-aguam"'+(v('aguaMin')?' checked':'')+'> <span><b>Pide agua algo tomada</b><small>Si el agua probable es cristal, el Plan lo da por peor.</small></span></label>'+
     '<label class="hrck"><input type="checkbox" id="sp-olaig"'+(v('olaDaIgual')?' checked':'')+'> <span><b>La ola importa poco</b><small>No se aprende ni se exige un oleaje.</small></span></label></div>');
 };
 var _rsf79=readSpotForm;
@@ -72,6 +87,7 @@ readSpotForm=function(){
   if(a)d.faseSolo=!!a.checked;
   if(b){var s=spotDraft&&spotDraft.id?spots.find(function(x){return x.id===spotDraft.id}):null;d.vivaMin=b.checked?((s&&s.vivaMin)||3):null}
   if(c)d.olaDaIgual=!!c.checked;
+  var am=document.getElementById('sp-aguam');if(am)d.aguaMin=am.checked?'tomadilla':null;
   return d;
 };
 (function(){var s=document.createElement('style');s.textContent=

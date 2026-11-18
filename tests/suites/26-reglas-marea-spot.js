@@ -37,9 +37,23 @@ module.exports = {
       if (m) { const a = +m[1] * 60 + +m[2], b = +m[3] * 60 + +m[4]; t.ok('la ventana rodea la bajamar de las 11:00 (entre 09:00 y 13:00)', a >= 540 && b <= 780 && a <= 660 && b >= 660, m[0]); }
       await t.shot(SHP + 'reglas-viva');
     });
+    await t.case('Matxitxako: pide agua algo tomada; si lo probable es agua clara, el Plan lo avisa y lo baja', async () => {
+      for (let i = -8; i <= 2; i++) await t.put('forecast', iso(i), { date: iso(i), point: 'test', src: 'test', samples: [1, 4, 7, 10, 13, 16, 19, 22].map((h) => ({ h, wave: 0.8, period: 9, wind: 8, gust: 12 })), tides: tides(iso(i), true) });
+      await t.put('sites', 'mx', { name: 'Matxitxako', lat: 43.4565, lon: -2.7525, desc: '', createdAt: 9, status: 'activo' });
+      await t.put('spots', 'mx1', { name: 'Piedra B', siteId: 'mx', lat: 43.4565, lon: -2.7529, createdAt: 10, status: 'activo', minWave: 0.5, maxWave: 1.3, aguaMin: 'tomadilla' });
+      await t.put('trips', 'tm1', { date: iso(-3), siteId: 'mx', siteName: 'Matxitxako', mode: 'Corcho', companions: [], eventos: [], createdAt: 2, stops: [{ id: 'stm1', spotId: 'mx1', spotName: 'Piedra B', tFrom: '09:00', tTo: '12:00', wave: 0.8, baits: [] }] });
+      await t.put('aguas', 'stm1', { stopId: 'stm1', agua: 'cristal', u: 1 });
+      await t.wait(900); await t.reload(); await t.wait(2200); await t.goTab('hoy'); await t.wait(1500);
+      const mc = () => t.page.evaluate(() => { const a = [].find.call(document.querySelectorAll('article.psite'), (x) => /Matxitxako/.test(x.querySelector('h3') ? x.querySelector('h3').textContent : '')); return a ? a.innerText.replace(/\s+/g, ' ') : ''; });
+      await t.page.evaluate((d) => { const b = document.querySelector('[data-a="day"][data-d="' + d + '"]'); b && b.click(); }, iso(1)); await t.wait(1200);
+      const x = await mc();
+      t.ok('chip «agua algo tomada o tras temporal» en la receta', /agua algo tomada o tras temporal/.test(x), x.slice(0, 350));
+      t.ok('aviso «Agua probable cristal: aquí rinde con el agua algo más tomada»', /Agua probable cristal: aquí rinde con el agua algo más tomada/.test(x), x.slice(0, 350));
+      await t.shot(SHP + 'reglas-agua');
+    });
     await t.case('Se puede marcar desde el editor del spot', async () => {
       await t.page.evaluate(() => { const b = document.createElement('button'); b.setAttribute('data-a', 'edit-spot'); b.setAttribute('data-id', 'tx1'); document.body.appendChild(b); b.click(); b.remove(); }); await t.wait(700);
-      t.ok('las tres casillas, marcadas', await t.page.evaluate(() => ['sp-fsolo', 'sp-viva', 'sp-olaig'].every((i) => { const e = document.getElementById(i); return e && e.checked; })));
+      t.ok('las casillas, marcadas', await t.page.evaluate(() => ['sp-fsolo', 'sp-viva', 'sp-olaig'].every((i) => { const e = document.getElementById(i); return e && e.checked; })));
       await t.page.evaluate(() => { document.getElementById('sp-olaig').checked = false; }); await t.tap('#sp-save', 900);
       const s = (await t.docs('spots')).find((x) => x.id === 'tx1');
       t.ok('se guarda: la ola deja de dar igual y lo demás sigue', s.olaDaIgual === false && s.faseSolo === true && s.vivaMin === 3, JSON.stringify(s));
