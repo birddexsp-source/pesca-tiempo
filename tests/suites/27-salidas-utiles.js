@@ -25,8 +25,20 @@ module.exports = {
       const rows = await t.page.evaluate(() => [].map.call(document.querySelectorAll('article.trow'), (a) => a.innerText.replace(/\s+/g, ' ')));
       const p = rows.find((r) => /Portoko/.test(r)) || '', r3 = rows.find((r) => /Rampa/.test(r)) || '';
       t.ok('Portoko: 10:18–10:52 · 3 m · pleamar · 5,3/h', /10:18–10:52/.test(p) && /3 m/.test(p) && /pleamar/.test(p) && /5,3\/h/.test(p), p);
+      const m = rows.find((r) => /Matxitxako/.test(r)) || '';
+      t.ok('con compañero, el círculo es el total (3 tuyos + 2 de Aita = 5) y la especie suma también', /5 PECES/.test(m) && /Sargo ×5/.test(m), m);
+      t.ok('y dice quién ha cogido qué: «en total · tú 3 · Aita 2»', /en total · tú 3 · Aita 2/.test(m), m);
+      t.ok('sin compañeros no se añade esa línea', !/en total/.test(p), p);
       t.ok('Rampa sin peces enseña «0 peces» en vez de una flecha', /0 peces/i.test(r3) && (await t.N('.fbadge.sx0')) === 1, r3);
       await t.page.evaluate(() => { const e = document.querySelector('.sxs'); e && e.scrollIntoView({ block: 'start' }); }); await t.wait(300); await t.shot(SHP + 'salidas-lista');
+    });
+    await t.case('Dentro de la salida con compañero, el círculo también es el total y el detalle separa quién', async () => {
+      await t.page.evaluate(() => { const o = document.querySelector('[data-a="trip-open"][data-id="u1"]'); o && o.click(); }); await t.wait(900);
+      t.ok('círculo del detalle = 5', /^5/.test(await txt(t, '.hero .fbadge')), await txt(t, '.hero .fbadge'));
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a="trip-tab"][data-v="cap"]'); b && b.click(); }); await t.wait(700);
+      const x = await txt(t, '.tdbody');
+      t.ok('en Capturas salen Tú y Aita por separado', /Tú/.test(x) && /Aita/.test(x), x.slice(0, 200));
+      await t.page.evaluate(() => { const b = document.querySelector('[data-a="trip-back"]'); b && b.click(); }); await t.wait(600);
     });
     await t.case('«Qué aprendimos» no compara un rockfishing con salidas a corcho', async () => {
       const x = await txt(t, '.enc');

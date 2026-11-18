@@ -11134,6 +11134,21 @@ function sxCond(t){
   if(r&&n>0)p.push('<b>'+r+'/h</b>');
   return p.length?'<div class="sxc">'+p.join(' · ')+'</div>':'';
 }
+/* total de la salida (tuyos + compañeros) y quién ha cogido cada parte */
+function sxTotals(tripId){
+  var o={tot:0,me:0,by:{},sp:{}};
+  sxAll().forEach(function(c){if(c.tripId!==tripId)return;(c.items||[]).forEach(function(i){
+    if(!(i.n>0))return;o.tot+=i.n;
+    if(i.who){var nm=lvPName(i.who);o.by[nm]=(o.by[nm]||0)+i.n}else o.me+=i.n;
+    if(i.species)o.sp[i.species]=(o.sp[i.species]||0)+i.n;
+  })});
+  return o;
+}
+function sxBadge(n,z){return '<div class="fbadge'+(z?' sx0':'')+'"><b>'+n+'</b><span>'+(n===1?'pez':'peces')+'</span></div>'}
+function sxWho(o){
+  var ks=Object.keys(o.by);if(!ks.length)return '';
+  return '<div class="sxw2">en total · <b>tú '+o.me+'</b>'+ks.map(function(k){return ' · '+esc(k)+' '+o.by[k]}).join('')+'</div>';
+}
 var _rs78=renderSalidas;
 renderSalidas=function(){
   var h=_rs78();
@@ -11145,8 +11160,13 @@ renderSalidas=function(){
     [].forEach.call(D.querySelectorAll('article.trow'),function(a){
       var op=a.querySelector('.tcopen'),id=op&&op.getAttribute('data-id'),t=id&&trips.filter(function(x){return x.id===id})[0];if(!t)return;
       var trm=a.querySelector('.trm');if(trm&&!trm.querySelector('.sxc')){var c=sxCond(t);if(c)trm.insertAdjacentHTML('beforeend',c)}
-      var g=a.querySelector('.tcg');
-      if(g&&!a.querySelector('.fbadge')&&sxTripLegs(t.id).length){g.insertAdjacentHTML('beforebegin','<div class="fbadge sx0"><b>0</b><span>peces</span></div>');g.remove()}
+      var T=sxTotals(t.id),fb=a.querySelector('.fbadge'),g=a.querySelector('.tcg');
+      if(T.tot>0){
+        if(fb)fb.outerHTML=sxBadge(T.tot);else if(g){g.insertAdjacentHTML('beforebegin',sxBadge(T.tot));g.remove()}
+        var sp=Object.keys(T.sp).sort(function(x,y){return T.sp[y]-T.sp[x]}).map(function(k){return k+(T.sp[k]>1?' ×'+T.sp[k]:'')}).join(', '),tf=a.querySelector('.trf');
+        if(tf)tf.innerHTML='🐟 '+esc(sp);else if(trm)trm.insertAdjacentHTML('beforeend','<div class="trf">🐟 '+esc(sp)+'</div>');
+        if(trm&&sxWho(T)){var c0=trm.querySelector('.sxc');(c0||trm).insertAdjacentHTML(c0?'beforebegin':'beforeend',sxWho(T))}
+      }else if(g&&!fb&&sxTripLegs(t.id).length){g.insertAdjacentHTML('beforebegin',sxBadge(0,true));g.remove()}
     });
     return D.innerHTML;
   }catch(e){return h}
@@ -11240,6 +11260,14 @@ compViewBody=function(){
 '.sxr .cpsel{grid-column:2/3;font-size:12.5px;padding:4px 8px;min-height:30px;max-width:100%}.sxr .cpx{grid-column:3;justify-self:end}.sxmv{display:flex;flex-direction:column;gap:6px;margin-top:12px;font:600 13px var(--body);color:var(--muted)}.sxhint{margin:10px 0 0}'+
 '.sxce{display:flex;align-items:center;gap:12px}.sxcn{flex:1;min-width:0;display:flex;flex-direction:column;text-align:left}.sxcn small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sxsc{flex:none;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:96px;text-align:right}.sxsc b{font:800 18px var(--display)}.sxsc b:first-child{color:var(--accent)}.sxsc b:last-of-type{color:#f2b84b}.sxsc i{color:var(--dim);font-style:normal}.sxsc small{flex-basis:100%;font:500 10.5px var(--body);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sxce.z{opacity:.7}';
 document.head.appendChild(s)})();
+
+/* en el detalle de la salida el círculo de arriba también es el total */
+var _tdv77=tdView;
+tdView=function(t){
+  var h=_tdv77.apply(this,arguments),T=sxTotals(t.id);
+  return T.tot>0?h.replace(/<div class="fbadge">[\s\S]*?<\/div>/,sxBadge(T.tot)):h;
+};
+(function(){var s=document.createElement('style');s.textContent='.sxw2{margin-top:3px;font:500 12px var(--body);color:var(--muted)}.sxw2 b{color:var(--accent);font-weight:700}';document.head.appendChild(s)})();
 
 /* ===== p78: reglas fuertes por spot que Jon dice en los audios — «solo en esa marea», «solo con mareas vivas», «la ola no importa» ===== */
 /* Campos del spot: faseSolo (bool: fuera de su ventana de marea casi no vale), vivaMin (m de recorrido de marea del día; mareas vivas ≈ 3 m o más), olaDaIgual (bool). */
