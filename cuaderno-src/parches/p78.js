@@ -45,7 +45,7 @@ siteRecipe=function(G){
   var h=_sr79.apply(this,arguments),ch=[];
   var S=G.spots.filter(function(E){return !E.pending}).map(function(E){return E.s});
   var fs=S.filter(function(s){return s.faseSolo&&PH[s.from]&&PH[s.to]}),vv=S.filter(function(s){return s.vivaMin}),oi=S.length&&S.every(function(s){return s.olaDaIgual});
-  if(fs.length){var t=hrPhTxt(fs[0]);if(t)ch.push('<span class="hrc">🌑 solo '+esc(t)+'</span>')}
+  if(fs.length){var pf=fs.length<S.length&&S.length>1;var sn={};fs.forEach(function(x){var t=hrPhTxt(x),c=t&&'<span class="hrc">🌑 '+(pf?esc(x.name)+': ':'')+'solo '+esc(t)+'</span>';if(c&&!sn[c]){sn[c]=1;ch.push(c)}})}
   if(vv.length)ch.push('<span class="hrc">🌕 mareas vivas (≥ '+num(Math.min.apply(null,vv.map(function(s){return s.vivaMin})),1)+' m)</span>');
   var am=S.filter(function(s){return s.aguaMin})[0];if(am)ch.push('<span class="hrc">💧 agua algo '+(am.aguaMin==='tomadilla'?'tomada':esc(am.aguaMin))+' o tras temporal</span>');
   if(oi)ch.push('<span class="hrc z">🌊 la ola importa poco</span>');
